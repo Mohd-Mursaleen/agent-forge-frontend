@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createApiClient, type Agent, type VectorTable, type Task } from "@/lib/api";
-import { Bot, Database, MessageSquare, Plus, Settings, ArrowLeft, Edit, Trash2 } from "lucide-react";
+import { Database, MessageSquare, Plus, ArrowLeft, Edit, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChatWindow } from "@/components/chat-window";
 import { useConfirmDialog } from "@/components/confirm-dialog";
@@ -330,9 +330,11 @@ export default function AgentDetailPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="w-1/2"
+            className="w-1/2 flex-shrink-0"
           >
-            <ChatWindow agentId={agentId} onClose={() => setShowChat(false)} />
+            <div className="sticky top-4">
+              <ChatWindow agentId={agentId} onClose={() => setShowChat(false)} />
+            </div>
           </motion.div>
         )}
       </div>
