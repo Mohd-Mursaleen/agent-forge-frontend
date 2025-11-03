@@ -5,7 +5,7 @@ import { useAuth } from "@clerk/nextjs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createApiClient, type Agent } from "@/lib/api";
-import { Bot, Plus, ArrowRight, Activity } from "lucide-react";
+import { Bot, Plus, ArrowRight, Activity, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 
@@ -136,14 +136,21 @@ export default function DashboardPage() {
                       {agent.system_prompt}
                     </p>
                   </CardContent>
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 flex gap-2">
+                    <Button
+                      className="flex-1 bg-slate-800 text-white hover:bg-slate-900"
+                      onClick={() => router.push(`/chat?agent=${agent.id}`)}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      Chat
+                    </Button>
                     <Button
                       variant="outline"
-                      className="w-full border-slate-300 text-slate-900 hover:bg-slate-100"
+                      className="flex-1 border-slate-300 text-slate-900 hover:bg-slate-100"
                       onClick={() => router.push(`/agents/${agent.id}`)}
                     >
-                      View Details
-                      <ArrowRight className="h-4 w-4 ml-2" />
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Details
                     </Button>
                   </CardContent>
                 </Card>

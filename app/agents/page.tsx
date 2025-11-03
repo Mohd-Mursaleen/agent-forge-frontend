@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/nextjs";
 import { AgentList, Agents } from "@/components/agent-list";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/confirm-dialog";
 
 import { createApiClient, type Agent } from "@/lib/api";
 
@@ -14,6 +15,7 @@ export default function AgentsPage() {
   const router = useRouter();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
     const loadAgents = async () => {
@@ -32,16 +34,24 @@ export default function AgentsPage() {
   }, [getToken]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this agent?")) return;
-    try {
-      const token = await getToken();
-      const api = createApiClient(token || undefined);
-      await api.deleteAgent(id);
-      setAgents(agents.filter(a => a.id !== id));
-    } catch (error) {
-      console.error("Failed to delete agent:", error);
-      alert("Failed to delete agent");
-    }
+    const agent = agents.find(a => a.id === id);
+    confirm({
+      title: "Delete Agent",
+      description: `Are you sure you want to delete "${agent?.name}"? This action cannot be undone and will also delete all associated tables and tasks.`,
+      confirmText: "Delete",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          const token = await getToken();
+          const api = createApiClient(token || undefined);
+          await api.deleteAgent(id);
+          setAgents(agents.filter(a => a.id !== id));
+        } catch (error) {
+          console.error("Failed to delete agent:", error);
+          // Could be replaced with toast notification
+        }
+      }
+    });
   };
 
   return (
@@ -66,6 +76,7 @@ export default function AgentsPage() {
         onEdit={id => router.push(`/agents/${id}/edit`)}
         onDelete={handleDelete}
       />
+      <ConfirmDialog />
     </div>
   );
 }

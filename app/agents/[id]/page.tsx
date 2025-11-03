@@ -9,6 +9,7 @@ import { createApiClient, type Agent, type VectorTable, type Task } from "@/lib/
 import { Bot, Database, MessageSquare, Plus, Settings, ArrowLeft, Edit, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChatWindow } from "@/components/chat-window";
+import { useConfirmDialog } from "@/components/confirm-dialog";
 
 export default function AgentDetailPage() {
   const { getToken } = useAuth();
@@ -21,6 +22,7 @@ export default function AgentDetailPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
     const loadData = async () => {
@@ -46,16 +48,23 @@ export default function AgentDetailPage() {
   }, [agentId, getToken]);
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this agent?")) return;
-    try {
-      const token = await getToken();
-      const api = createApiClient(token || undefined);
-      await api.deleteAgent(agentId);
-      router.push("/agents");
-    } catch (error) {
-      console.error("Failed to delete agent:", error);
-      alert("Failed to delete agent");
-    }
+    confirm({
+      title: "Delete Agent",
+      description: `Are you sure you want to delete "${agent?.name}"? This action cannot be undone and will also delete all associated tables and tasks.`,
+      confirmText: "Delete Agent",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          const token = await getToken();
+          const api = createApiClient(token || undefined);
+          await api.deleteAgent(agentId);
+          router.push("/agents");
+        } catch (error) {
+          console.error("Failed to delete agent:", error);
+          // Could be replaced with toast notification
+        }
+      }
+    });
   };
 
   if (loading) {
@@ -134,25 +143,25 @@ export default function AgentDetailPage() {
             </div>
 
             {/* System Prompt */}
-            <Card className="mb-6 bg-white border border-slate-200 rounded-xl">
+            {/* <Card className="mb-6 bg-white border border-slate-200 rounded-xl">
               <CardHeader>
                 <CardTitle>System Prompt</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-slate-700 whitespace-pre-wrap">{agent.system_prompt}</p>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Button
-                className="h-auto py-4 flex-col gap-2 bg-slate-800 text-white hover:bg-slate-900"
+                className="h-auto py-4 flex items-center gap-2 bg-slate-800 text-white hover:bg-slate-900"
                 onClick={() => setShowChat(!showChat)}
               >
                 <MessageSquare className="h-6 w-6" />
                 <span>{showChat ? "Hide Chat" : "Chat with Agent"}</span>
               </Button>
-              <Button
+              {/* <Button
                 variant="outline"
                 className="h-auto py-4 flex-col gap-2 border-slate-300 text-slate-900 hover:bg-slate-100"
                 onClick={() => router.push(`/agents/${agentId}/tables/new`)}
@@ -167,7 +176,7 @@ export default function AgentDetailPage() {
               >
                 <Plus className="h-6 w-6" />
                 <span>Add Task</span>
-              </Button>
+              </Button> */}
             </div>
 
             {/* Vector Tables */}
@@ -239,10 +248,13 @@ export default function AgentDetailPage() {
                     {tasks.map((task) => (
                       <div
                         key={task.id}
-                        className="p-4 bg-slate-50 rounded-lg"
+                        className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
                       >
                         <div className="flex items-start justify-between">
-                          <div className="flex-1">
+                          <div 
+                            className="flex-1 cursor-pointer"
+                            onClick={() => router.push(`/tasks/${task.id}`)}
+                          >
                             <p className="font-medium text-slate-900">{task.task_name}</p>
                             <p className="text-sm text-slate-600 mt-1">{task.task_description}</p>
                             {task.tools && (
@@ -251,15 +263,57 @@ export default function AgentDetailPage() {
                               </div>
                             )}
                           </div>
-                          <span
-                            className={`px-2 py-1 rounded text-xs font-medium ${
-                              task.is_active
-                                ? "bg-slate-100 text-slate-800"
-                                : "bg-slate-50 text-slate-500"
-                            }`}
-                          >
-                            {task.is_active ? "Active" : "Inactive"}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${
+                                task.is_active
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-slate-100 text-slate-500"
+                              }`}
+                            >
+                              {task.is_active ? "Active" : "Inactive"}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                router.push(`/tasks/${task.id}/edit`);
+                              }}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                confirm({
+                                  title: "Delete Task",
+                                  description: `Are you sure you want to delete the task "${task.task_name}"? This action cannot be undone.`,
+                                  confirmText: "Delete Task",
+                                  variant: "destructive",
+                                  onConfirm: async () => {
+                                    try {
+                                      const token = await getToken();
+                                      const api = createApiClient(token || undefined);
+                                      await api.deleteTask(task.id);
+                                      // Refresh tasks
+                                      const updatedTasks = await api.getAgentTasks(agentId);
+                                      setTasks(updatedTasks);
+                                    } catch (error) {
+                                      console.error("Failed to delete task:", error);
+                                      // Could be replaced with toast notification
+                                    }
+                                  }
+                                });
+                              }}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -282,6 +336,7 @@ export default function AgentDetailPage() {
           </motion.div>
         )}
       </div>
+      <ConfirmDialog />
     </div>
   );
 }

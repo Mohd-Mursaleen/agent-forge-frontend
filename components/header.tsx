@@ -1,5 +1,5 @@
 "use client";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Bot, LayoutDashboard } from "lucide-react";
 
 const navigation = [
@@ -9,6 +9,7 @@ const navigation = [
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname();
 
   return (
     <header className="navbar">
@@ -25,17 +26,24 @@ export function Header() {
         </div>
         {/* Links */}
         <nav className="navbar-links">
-          {navigation.map(item => (
-            <button
-              key={item.name}
-              onClick={() => router.push(item.href)}
-              className="navbar-link"
-              type="button"
-            >
-              <item.icon size={17} style={{ color: "#5e6e97" }} />
-              {item.name}
-            </button>
-          ))}
+          {navigation
+            .filter(item => {
+              // Hide the current page's navigation button
+              if (item.href === "/dashboard" && pathname === "/dashboard") return false;
+              if (item.href === "/agents" && (pathname === "/agents" || pathname.startsWith("/agents/"))) return false;
+              return true;
+            })
+            .map(item => (
+              <button
+                key={item.name}
+                onClick={() => router.push(item.href)}
+                className="navbar-link"
+                type="button"
+              >
+                <item.icon size={17} style={{ color: "#5e6e97" }} />
+                {item.name}
+              </button>
+            ))}
         </nav>
       </div>
     </header>

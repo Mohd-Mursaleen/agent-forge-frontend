@@ -120,6 +120,11 @@ export class ApiClient {
     return data;
   }
 
+  async updateTable(id: string, table: Partial<VectorTable>): Promise<VectorTable> {
+    const { data } = await this.client.put(`/api/vector-tables/${id}`, table);
+    return data;
+  }
+
   async deleteTable(id: string): Promise<void> {
     await this.client.delete(`/api/vector-tables/${id}`);
   }
@@ -139,6 +144,15 @@ export class ApiClient {
   async addRecordsBatch(tableId: string, records: Array<{ data: Record<string, any> }>): Promise<VectorRecord[]> {
     const { data } = await this.client.post(`/api/vector-tables/${tableId}/records/batch`, records);
     return data;
+  }
+
+  async updateRecord(tableId: string, recordId: string, record: { data: Record<string, any> }): Promise<VectorRecord> {
+    const { data } = await this.client.put(`/api/vector-tables/${tableId}/records/${recordId}`, record);
+    return data;
+  }
+
+  async deleteRecord(tableId: string, recordId: string): Promise<void> {
+    await this.client.delete(`/api/vector-tables/${tableId}/records/${recordId}`);
   }
 
   async searchRecords(tableId: string, query: string, limit = 5, similarity_threshold = 0.4): Promise<VectorRecord[]> {
@@ -193,6 +207,35 @@ export class ApiClient {
   // Chat
   async chat(request: ChatRequest): Promise<ChatResponse> {
     const { data } = await this.client.post("/api/chat/", request);
+    return data;
+  }
+
+  // Enhancement APIs
+  async enhanceSystemPrompt(agentName: string, agentDescription: string, systemPrompt: string): Promise<{ original_prompt: string; enhanced_prompt: string }> {
+    const { data } = await this.client.post("/api/agents/enhance-prompt", {
+      agent_name: agentName,
+      agent_description: agentDescription,
+      system_prompt: systemPrompt,
+    });
+    return data;
+  }
+
+  async enhanceTaskDescription(taskName: string, taskDescription: string, agentId?: string): Promise<{ original_description: string; enhanced_description: string }> {
+    const { data } = await this.client.post("/api/tasks/enhance-description", {
+      task_name: taskName,
+      task_description: taskDescription,
+      ...(agentId && { agent_id: agentId }),
+    });
+    return data;
+  }
+
+  async createAgentWithEnhancement(agent: Partial<Agent>, enhancePrompt: boolean = true): Promise<Agent> {
+    const { data } = await this.client.post(`/api/agents?enhance_prompt=${enhancePrompt}`, agent);
+    return data;
+  }
+
+  async createTaskWithEnhancement(task: Partial<Task> & { table_id?: string }, enhanceDescription: boolean = true): Promise<Task> {
+    const { data } = await this.client.post(`/api/tasks?enhance_description=${enhanceDescription}`, task);
     return data;
   }
 }

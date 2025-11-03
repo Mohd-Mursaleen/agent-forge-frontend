@@ -75,69 +75,70 @@ export function ChatWindow({ agentId, onClose }: ChatWindowProps) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-
     <motion.div
-      initial={{ opacity: 0, y: 28, scale: 0.96 }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 28, scale: 0.96 }}
-      className="fixed top-12 right-12 max-w-lg w-full rounded-3xl glass shadow-2xl border-0 z-50 flex flex-col"
-      style={{ height: "70vh", minWidth: 370 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      className="w-full h-full bg-white border border-slate-200 rounded-xl shadow-lg flex flex-col"
+      style={{ height: "calc(100vh - 12rem)" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-7 py-5 border-b border-white/40">
-        <div className="flex items-center gap-2">
-          <Bot className="text-emerald-500 w-6 h-6" />
-          <span className="text-2xl font-bold text-gray-900">Agent Chat</span>
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 rounded-t-xl">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
+            <Bot className="w-5 h-5 text-slate-600" />
+          </div>
+          <span className="text-lg font-semibold text-slate-900">Agent Chat</span>
         </div>
-        <Button variant="ghost" className="rounded-full! p-2" onClick={onClose}>
-          <X className="text-gray-500 w-6 h-6" />
+        <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 p-0">
+          <X className="w-4 h-4 text-slate-500" />
         </Button>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 px-6 py-5 overflow-y-auto space-y-3" style={{ background: "transparent" }}>
+      <div className="flex-1 px-4 py-4 overflow-y-auto space-y-4 bg-slate-50">
         {messages.length === 0 ? (
-          <div className="mt-2 text-base text-gray-400 text-center">Start a conversation with your agent</div>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <Bot className="w-12 h-12 mx-auto text-slate-300 mb-3" />
+              <p className="text-slate-500">Start a conversation with your agent</p>
+            </div>
+          </div>
         ) : (
           messages.map((message, idx) => (
             <div
               key={idx}
-              className={`flex w-full ${message.role === "user" ? "justify-end" : "justify-start"} animate-fade-up`}
+              className={`flex w-full ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               <div
-                className={`flex items-end gap-2 max-w-lg ${
+                className={`flex items-start gap-3 max-w-[80%] ${
                   message.role === "assistant" ? "" : "flex-row-reverse"
                 }`}
               >
-                {message.role === "assistant" ? (
-                  <Bot className="w-6 h-6 rounded-full bg-emerald-50 p-1 shadow" />
-                ) : (
-                  <User className="w-6 h-6 rounded-full bg-indigo-200 p-1 shadow" />
-                )}
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  {message.role === "assistant" ? (
+                    <Bot className="w-5 h-5 text-slate-600" />
+                  ) : (
+                    <User className="w-5 h-5 text-slate-600" />
+                  )}
+                </div>
                 <div
-                  className={`p-3 rounded-2xl shadow-md text-base leading-relaxed whitespace-pre-line
-                  ${
+                  className={`p-3 rounded-lg text-sm leading-relaxed whitespace-pre-line ${
                     message.role === "assistant"
-                      ? "bg-white/70 text-gray-800 glass"
-                      : "bg-linear-to-tr from-emerald-400 to-indigo-400 text-white font-medium"
+                      ? "bg-white text-slate-800 border border-slate-200"
+                      : "bg-slate-800 text-white"
                   }`}
-                  style={{
-                    borderBottomRightRadius: message.role === "user" ? 6 : 24,
-                    borderBottomLeftRadius: message.role === "assistant" ? 6 : 24,
-                  }}
                 >
                   {message.content}
-                  {message.tool_calls &&
-                    message.tool_calls.length > 0 && (
-                      <div className="mt-2 text-xs text-gray-500">
-                        {message.tool_calls.map((toolCall, tIdx) => (
-                          <div key={tIdx} className="mb-1">
-                            <span className="font-semibold">{toolCall.tool}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                  {message.tool_calls && message.tool_calls.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-500">
+                      {message.tool_calls.map((toolCall, tIdx) => (
+                        <div key={tIdx} className="mb-1">
+                          <span className="font-medium">Used tool: {toolCall.tool}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -145,8 +146,16 @@ export function ChatWindow({ agentId, onClose }: ChatWindowProps) {
         )}
         {loading && (
           <div className="flex w-full justify-start">
-            <div className="p-3 rounded-2xl glass bg-white/60 text-gray-400 shadow text-base animate-pulse">
-              Thinking...
+            <div className="flex items-start gap-3 max-w-[80%]">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <Bot className="w-5 h-5 text-slate-600" />
+              </div>
+              <div className="p-3 rounded-lg bg-white border border-slate-200 text-slate-500 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-400"></div>
+                  Thinking...
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -155,7 +164,7 @@ export function ChatWindow({ agentId, onClose }: ChatWindowProps) {
 
       {/* Input */}
       <form
-        className="flex items-center gap-3 bg-white/40 glass px-5 py-4 border-t border-white/30"
+        className="flex items-center gap-3 p-4 border-t border-slate-200 bg-white rounded-b-xl"
         onSubmit={e => {
           e.preventDefault();
           handleSend();
@@ -172,17 +181,17 @@ export function ChatWindow({ agentId, onClose }: ChatWindowProps) {
           }}
           placeholder="Type your message..."
           disabled={loading}
-          className="flex-1 rounded-xl! p-3! bg-white/70! border-0! text-base shadow"
+          className="flex-1"
         />
         <Button
           type="submit"
-          className="rounded-xl! px-4 py-3 ml-1 bg-linear-to-tr from-emerald-400 to-indigo-400 text-white shadow-md text-base flex items-center gap-1 disabled:opacity-70"
+          size="sm"
           disabled={loading || !input.trim()}
+          className="bg-slate-800 hover:bg-slate-900"
         >
-          <Send className="w-5 h-5" />
+          <Send className="w-4 h-4" />
         </Button>
       </form>
     </motion.div>
-    </div>
   );
 }

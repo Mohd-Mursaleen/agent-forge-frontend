@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bot, ArrowRight, Trash2, Edit } from "lucide-react";
+import { Bot, ArrowRight, Trash2, Edit, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
@@ -82,29 +82,44 @@ export function AgentList({ agents, loading, onCreate, onEdit, onDelete }: Props
                 {agent.system_prompt}
               </p>
             </CardContent>
-            <CardContent className="pt-0 flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1 border-slate-300 text-slate-900 hover:bg-slate-100"
-                onClick={() => router.push(`/agents/${agent.id}`)}
-              >
-                View
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onEdit(agent.id)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(agent.id)}
-              >
-                <Trash2 className="h-4 w-4 text-red-600" />
-              </Button>
+            <CardContent className="pt-0 space-y-2">
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 bg-slate-800 text-white hover:bg-slate-900"
+                  onClick={() => router.push(`/chat?agent=${agent.id}`)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Chat
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 border-slate-300 text-slate-900 hover:bg-slate-100"
+                  onClick={() => router.push(`/agents/${agent.id}`)}
+                >
+                  <ArrowRight className="h-4 w-4 mr-2" />
+                  Details
+                </Button>
+              </div>
+              {/* <div className="flex gap-2 justify-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onEdit(agent.id)}
+                  className="text-slate-600 hover:text-slate-900"
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(agent.id)}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete
+                </Button>
+              </div> */}
             </CardContent>
           </Card>
         </motion.div>

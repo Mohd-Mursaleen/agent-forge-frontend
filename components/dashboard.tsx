@@ -92,8 +92,9 @@ export function Dashboard({
           agents.map(agent => (
             <AgentCard
               key={agent.id}
+              id={agent.id}
               name={agent.name}
-              description={agent.description}
+              description={agent.description || ""}
               onEdit={() => onEdit(agent.id)}
               onDelete={() => onDelete(agent.id)}
             />

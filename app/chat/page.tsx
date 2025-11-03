@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { LayoutWrapper } from "@/components/layout-wrapper";
+import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createApiClient, type Agent } from "@/lib/api";
@@ -12,6 +12,7 @@ import { ChatWindow } from "@/components/chat-window";
 
 export default function ChatPage() {
   const { getToken } = useAuth();
+  const searchParams = useSearchParams();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,12 @@ export default function ChatPage() {
         const api = createApiClient(token || undefined);
         const data = await api.getAgents();
         setAgents(data);
+        
+        // Check if agent is specified in URL params
+        const agentParam = searchParams.get('agent');
+        if (agentParam && data.some(agent => agent.id === agentParam)) {
+          setSelectedAgentId(agentParam);
+        }
       } catch (error) {
         console.error("Failed to load agents:", error);
       } finally {
@@ -31,7 +38,7 @@ export default function ChatPage() {
     };
 
     loadAgents();
-  }, [getToken]);
+  }, [getToken, searchParams]);
 
   if (loading) {
     return (

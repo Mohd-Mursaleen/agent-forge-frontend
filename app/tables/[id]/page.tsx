@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createApiClient, type VectorTable, type VectorRecord } from "@/lib/api";
-import { Database, ArrowLeft, Plus, Search, Download } from "lucide-react";
+import { Database, ArrowLeft, Plus, Search, Download, Edit, Trash2, Settings } from "lucide-react";
 import { motion } from "framer-motion";
+import { useConfirmDialog } from "@/components/confirm-dialog";
 
 // Utility to download current view as CSV
 function downloadCSV(rows: VectorRecord[], columns: string[], filename: string = "data.csv") {
@@ -33,9 +34,11 @@ export default function TableDetailPage() {
   const [table, setTable] = useState<VectorTable | null>(null);
   const [records, setRecords] = useState<VectorRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<VectorRecord[]>([]);
   const [searching, setSearching] = useState(false);
+  const { confirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
     const loadData = async () => {
@@ -48,8 +51,13 @@ export default function TableDetailPage() {
         ]);
         setTable(tableData);
         setRecords(recordsData);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to load table data:", error);
+        if (error.response?.status === 404) {
+          setError("Table not found. It may have been deleted or you don't have access to it.");
+        } else {
+          setError("Failed to load table data. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
@@ -85,15 +93,26 @@ export default function TableDetailPage() {
     );
   }
 
-  if (!table) {
+  if (error || !table) {
     return (
       <div className="max-w-5xl mx-auto px-6 py-12">
         <Card>
           <CardContent className="text-center py-12">
-            <p className="text-slate-600">Table not found</p>
-            <Button onClick={() => router.push("/tables")} className="mt-4 bg-slate-800 text-white hover:bg-slate-900">
-              Back to Tables
-            </Button>
+            <Database className="h-16 w-16 mx-auto text-slate-300 mb-4" />
+            <h3 className="text-xl font-semibold text-slate-900 mb-2">
+              {error ? "Error Loading Table" : "Table Not Found"}
+            </h3>
+            <p className="text-slate-600 mb-6">
+              {error || "The table you're looking for doesn't exist or has been deleted."}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={() => router.push("/tables")} className="bg-slate-800 text-white hover:bg-slate-900">
+                Back to Tables
+              </Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>
+                Try Again
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -165,36 +184,47 @@ export default function TableDetailPage() {
           </CardContent>
         </Card> */}
 
-        {/* Search and Add Record Bar */}
-        <div className="mb-4 flex gap-2 items-center">
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyPress={(e) => { if (e.key === "Enter") handleSearch(); }}
-            placeholder="Search records..."
-            className="flex-1"
-          />
-          <Button onClick={handleSearch} disabled={searching}>
-            <Search className="h-4 w-4 mr-2" />
-            {searching ? "Searching..." : "Search"}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/tables/${tableId}/records/new`)}
-            className="ml-2"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Record
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => downloadCSV(displayRecords, columns, `${table.name}-records.csv`)}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download CSV
-          </Button>
+        {/* Action Bar */}
+        <div className="mb-4 flex gap-2 items-center justify-between">
+          <div className="flex gap-2 items-center flex-1">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyPress={(e) => { if (e.key === "Enter") handleSearch(); }}
+              placeholder="Search records..."
+              className="flex-1 max-w-md"
+            />
+            <Button onClick={handleSearch} disabled={searching}>
+              <Search className="h-4 w-4 mr-2" />
+              {searching ? "Searching..." : "Search"}
+            </Button>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/tables/${tableId}/edit`)}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              Table Settings
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push(`/tables/${tableId}/records/new`)}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Record
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => downloadCSV(displayRecords, columns, `${table.name}-records.csv`)}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download CSV
+            </Button>
+          </div>
         </div>
 
         {/* DataGrid Table */}
@@ -221,11 +251,12 @@ export default function TableDetailPage() {
                       {displayRecords.some(r => 'similarity' in r) && (
                         <th className="px-4 py-2 text-left font-semibold text-slate-700">Similarity</th>
                       )}
+                      <th className="px-4 py-2 text-left font-semibold text-slate-700 w-24">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {displayRecords.map(record => (
-                      <tr key={record.id} className="bg-white">
+                      <tr key={record.id} className="bg-white hover:bg-slate-50">
                         {columns.map(col => (
                           <td key={col} className="px-4 py-2 text-slate-900">
                             {typeof record.data[col] === "object"
@@ -238,6 +269,47 @@ export default function TableDetailPage() {
                             {(record as any).similarity.toFixed(3)}
                           </td>
                         )}
+                        <td className="px-4 py-2">
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => router.push(`/tables/${tableId}/records/${record.id}/edit`)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                confirm({
+                                  title: "Delete Record",
+                                  description: "Are you sure you want to delete this record? This action cannot be undone.",
+                                  confirmText: "Delete Record",
+                                  variant: "destructive",
+                                  onConfirm: async () => {
+                                    try {
+                                      const token = await getToken();
+                                      const api = createApiClient(token || undefined);
+                                      await api.deleteRecord(tableId, record.id);
+                                      // Refresh records
+                                      const updatedRecords = await api.getRecords(tableId);
+                                      setRecords(updatedRecords);
+                                      setSearchResults([]);
+                                    } catch (error) {
+                                      console.error("Failed to delete record:", error);
+                                      // Could be replaced with toast notification
+                                    }
+                                  }
+                                });
+                              }}
+                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -247,6 +319,7 @@ export default function TableDetailPage() {
           </CardContent>
         </Card>
       </motion.div>
+      <ConfirmDialog />
     </div>
   );
 }
