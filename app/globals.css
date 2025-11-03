@@ -1,99 +1,128 @@
 @import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --secondary: #f1f5f9;
-  --muted: #f8fafc;
-  --border: #e2e8f0;
-  --card: #ffffff;
-  --card-foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-* {
-  margin: 0;
+/* --- Base Reset --- */
+html, body {
   padding: 0;
+  margin: 0;
+  background: #f8f9fb;
+  color: #213967;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* --- Typography --- */
+h1, h2, h3, h4, h5 {
+  color: #213967;
+  margin-top: 0;
+  font-weight: 600;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+p {
+  color: #606984;
 }
 
-::-webkit-scrollbar-track {
+/* --- Buttons --- */
+button {
+  appearance: none;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  transition: background .16s, color .16s;
+  font-family: inherit;
+}
+
+.btn-action {
+  background: #213967;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.5em 1.4em;
+  font-weight: 500;
+  font-size: 1em;
+  transition: background 0.18s;
+}
+.btn-action:hover { background: #142241; }
+
+.btn-neutral {
+  background: #e8eaed;
+  color: #213967;
+  border-radius: 8px;
+  padding: 0.5em 1.4em;
+  font-weight: 500;
+  font-size: 1em;
+}
+.btn-neutral:hover { background: #dde1ea; }
+
+/* --- Card/Grid --- */
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(33,57,103, 0.08);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+/* --- Container --- */
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* --- Navbar --- */
+.navbar {
+  width: 100%;
+  background: #f8f9fb;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: none;
+  position: fixed;
+  top: 0; left: 0; z-index: 30;
+}
+
+.navbar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55em;
+}
+.navbar-logo {
+  background: #213967;
+  color: #fff;
+  width: 36px; height: 36px;
+  border-radius: 9999px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.18em;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 1em;
+}
+.navbar-link {
+  color: #213967;
   background: transparent;
+  padding: 0.5em 1.2em;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background 0.15s;
+  display: flex; align-items: center; gap: 0.4em;
 }
+.navbar-link:hover { background: #e8eaed; }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-/* Glass morphism effect */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.glass-dark {
-  background: rgba(0, 0, 0, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
-}
-
-.animate-slide-in {
-  animation: slideIn 0.3s ease-out;
+@media(max-width: 700px) {
+  .container, .navbar-content { padding: 1rem; }
+  .navbar-links { gap: 0.3em; }
+  .card { padding: 1rem; }
 }

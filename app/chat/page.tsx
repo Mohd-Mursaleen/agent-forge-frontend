@@ -35,16 +35,16 @@ export default function ChatPage() {
 
   if (loading) {
     return (
-      <LayoutWrapper>
+      
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
           </div>
-      </LayoutWrapper>
-    );
-  }
+      
+    );}
 
   return (
-    <LayoutWrapper>
+    <div className="max-w-7xl mx-auto px-6 py-8">
+
       <div className="flex gap-6 h-[calc(100vh-8rem)]">
         {/* Agent List */}
         <div className="w-80">
@@ -92,6 +92,7 @@ export default function ChatPage() {
         </div>
 
         {/* Chat Window */}
+        
         <div className="flex-1">
           {selectedAgentId ? (
             <motion.div
@@ -100,6 +101,7 @@ export default function ChatPage() {
               transition={{ duration: 0.3 }}
               className="h-full"
             >
+              
               <ChatWindow agentId={selectedAgentId} onClose={() => setSelectedAgentId(null)} />
             </motion.div>
           ) : (
@@ -113,7 +115,7 @@ export default function ChatPage() {
           )}
         </div>
       </div>
-    </LayoutWrapper>
+      </div>
   );
 }
 

@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
-import { LayoutWrapper } from "@/components/layout-wrapper";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { createApiClient, type Agent, type VectorTable, type Task } from "@/lib/api";
@@ -16,7 +15,7 @@ export default function AgentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const agentId = params.id as string;
-  
+
   const [agent, setAgent] = useState<Agent | null>(null);
   const [tables, setTables] = useState<VectorTable[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -28,13 +27,11 @@ export default function AgentDetailPage() {
       try {
         const token = await getToken();
         const api = createApiClient(token || undefined);
-        
         const [agentData, tablesData, tasksData] = await Promise.all([
           api.getAgent(agentId),
           api.getAgentTables(agentId),
           api.getAgentTasks(agentId),
         ]);
-        
         setAgent(agentData);
         setTables(tablesData);
         setTasks(tasksData);
@@ -45,14 +42,11 @@ export default function AgentDetailPage() {
       }
     };
 
-    if (agentId) {
-      loadData();
-    }
+    if (agentId) loadData();
   }, [agentId, getToken]);
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this agent?")) return;
-    
     try {
       const token = await getToken();
       const api = createApiClient(token || undefined);
@@ -66,31 +60,34 @@ export default function AgentDetailPage() {
 
   if (loading) {
     return (
-      <LayoutWrapper>
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
-          </div>
-      </LayoutWrapper>
+      <div className="max-w-5xl mx-auto px-8 py-16">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700"></div>
+        </div>
+      </div>
     );
   }
 
   if (!agent) {
     return (
-      <LayoutWrapper>
+      <div className="max-w-5xl mx-auto px-8 py-16">
         <Card>
           <CardContent className="text-center py-12">
-            <p className="text-gray-600">Agent not found</p>
-            <Button onClick={() => router.push("/agents")} className="mt-4">
+            <p className="text-slate-600">Agent not found</p>
+            <Button
+              onClick={() => router.push("/agents")}
+              className="mt-4 bg-slate-800 text-white hover:bg-slate-900"
+            >
               Back to Agents
             </Button>
           </CardContent>
         </Card>
-      </LayoutWrapper>
+      </div>
     );
   }
 
   return (
-    <LayoutWrapper>
+    <div className="max-w-6xl mx-auto px-8 py-10">
       <div className="flex gap-6">
         {/* Main Content */}
         <div className={`flex-1 transition-all duration-300 ${showChat ? "w-1/2" : "w-full"}`}>
@@ -110,14 +107,15 @@ export default function AgentDetailPage() {
               </Button>
               <div className="flex items-start justify-between">
                 <div>
-                  <h1 className="text-4xl font-bold text-gray-900 mb-2">{agent.name}</h1>
+                  <h1 className="text-4xl font-bold text-slate-900 mb-2">{agent.name}</h1>
                   {agent.description && (
-                    <p className="text-gray-600">{agent.description}</p>
+                    <p className="text-slate-600">{agent.description}</p>
                   )}
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
+                    className="border-slate-300 text-slate-900 hover:bg-slate-100"
                     onClick={() => router.push(`/agents/${agentId}/edit`)}
                   >
                     <Edit className="h-4 w-4 mr-2" />
@@ -125,6 +123,7 @@ export default function AgentDetailPage() {
                   </Button>
                   <Button
                     variant="destructive"
+                    className="bg-red-600 text-white hover:bg-red-700"
                     onClick={handleDelete}
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
@@ -135,19 +134,19 @@ export default function AgentDetailPage() {
             </div>
 
             {/* System Prompt */}
-            <Card className="mb-6">
+            <Card className="mb-6 bg-white border border-slate-200 rounded-xl">
               <CardHeader>
                 <CardTitle>System Prompt</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-gray-700 whitespace-pre-wrap">{agent.system_prompt}</p>
+                <p className="text-slate-700 whitespace-pre-wrap">{agent.system_prompt}</p>
               </CardContent>
             </Card>
 
             {/* Quick Actions */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <Button
-                className="h-auto py-4 flex-col gap-2"
+                className="h-auto py-4 flex-col gap-2 bg-slate-800 text-white hover:bg-slate-900"
                 onClick={() => setShowChat(!showChat)}
               >
                 <MessageSquare className="h-6 w-6" />
@@ -155,7 +154,7 @@ export default function AgentDetailPage() {
               </Button>
               <Button
                 variant="outline"
-                className="h-auto py-4 flex-col gap-2"
+                className="h-auto py-4 flex-col gap-2 border-slate-300 text-slate-900 hover:bg-slate-100"
                 onClick={() => router.push(`/agents/${agentId}/tables/new`)}
               >
                 <Database className="h-6 w-6" />
@@ -163,7 +162,7 @@ export default function AgentDetailPage() {
               </Button>
               <Button
                 variant="outline"
-                className="h-auto py-4 flex-col gap-2"
+                className="h-auto py-4 flex-col gap-2 border-slate-300 text-slate-900 hover:bg-slate-100"
                 onClick={() => router.push(`/agents/${agentId}/tasks/new`)}
               >
                 <Plus className="h-6 w-6" />
@@ -172,7 +171,7 @@ export default function AgentDetailPage() {
             </div>
 
             {/* Vector Tables */}
-            <Card className="mb-6">
+            <Card className="mb-6 bg-white border border-slate-200 rounded-xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -181,6 +180,7 @@ export default function AgentDetailPage() {
                   </div>
                   <Button
                     size="sm"
+                    className="bg-slate-800 text-white hover:bg-slate-900"
                     onClick={() => router.push(`/agents/${agentId}/tables/new`)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -190,22 +190,22 @@ export default function AgentDetailPage() {
               </CardHeader>
               <CardContent>
                 {tables.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No tables yet</p>
+                  <p className="text-slate-500 text-center py-8">No tables yet</p>
                 ) : (
                   <div className="space-y-3">
                     {tables.map((table) => (
                       <div
                         key={table.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                         onClick={() => router.push(`/tables/${table.id}`)}
                       >
                         <div>
-                          <p className="font-medium text-gray-900">{table.display_name || table.name}</p>
+                          <p className="font-medium text-slate-900">{table.display_name || table.name}</p>
                           {table.description && (
-                            <p className="text-sm text-gray-600">{table.description}</p>
+                            <p className="text-sm text-slate-600">{table.description}</p>
                           )}
                         </div>
-                        <Database className="h-5 w-5 text-gray-400" />
+                        <Database className="h-5 w-5 text-slate-400" />
                       </div>
                     ))}
                   </div>
@@ -214,7 +214,7 @@ export default function AgentDetailPage() {
             </Card>
 
             {/* Tasks */}
-            <Card>
+            <Card className="bg-white border border-slate-200 rounded-xl">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -223,6 +223,7 @@ export default function AgentDetailPage() {
                   </div>
                   <Button
                     size="sm"
+                    className="bg-slate-800 text-white hover:bg-slate-900"
                     onClick={() => router.push(`/agents/${agentId}/tasks/new`)}
                   >
                     <Plus className="h-4 w-4 mr-2" />
@@ -232,20 +233,20 @@ export default function AgentDetailPage() {
               </CardHeader>
               <CardContent>
                 {tasks.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No tasks yet</p>
+                  <p className="text-slate-500 text-center py-8">No tasks yet</p>
                 ) : (
                   <div className="space-y-3">
                     {tasks.map((task) => (
                       <div
                         key={task.id}
-                        className="p-4 bg-gray-50 rounded-lg"
+                        className="p-4 bg-slate-50 rounded-lg"
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">{task.task_name}</p>
-                            <p className="text-sm text-gray-600 mt-1">{task.task_description}</p>
+                            <p className="font-medium text-slate-900">{task.task_name}</p>
+                            <p className="text-sm text-slate-600 mt-1">{task.task_description}</p>
                             {task.tools && (
-                              <div className="mt-2 text-xs text-gray-500">
+                              <div className="mt-2 text-xs text-slate-500">
                                 {task.tools.parameters?.length || 0} parameters
                               </div>
                             )}
@@ -253,8 +254,8 @@ export default function AgentDetailPage() {
                           <span
                             className={`px-2 py-1 rounded text-xs font-medium ${
                               task.is_active
-                                ? "bg-green-100 text-green-800"
-                                : "bg-gray-100 text-gray-800"
+                                ? "bg-slate-100 text-slate-800"
+                                : "bg-slate-50 text-slate-500"
                             }`}
                           >
                             {task.is_active ? "Active" : "Inactive"}
@@ -281,7 +282,6 @@ export default function AgentDetailPage() {
           </motion.div>
         )}
       </div>
-    </LayoutWrapper>
+    </div>
   );
 }
-
