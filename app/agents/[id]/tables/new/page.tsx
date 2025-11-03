@@ -99,9 +99,9 @@ export default function NewTablePage() {
         columns: tableData.columns.filter(col => col.name.trim() !== "")
       });
       
-      // If we're in a flow, redirect back to the flow
+      // If we're in a flow, redirect back to the flow with success state
       if (isFlow && returnTo && step && agentParam) {
-        router.push(`${returnTo}?step=tasks&agent=${agentParam}&tableCreated=${table.id}`);
+        router.push(`${returnTo}?step=${step}&agent=${agentParam}&tableCreated=${table.id}&tableSuccess=true`);
       } else {
         router.push(`/tables/${table.id}`);
       }
@@ -132,9 +132,9 @@ export default function NewTablePage() {
         tableData.description
       );
       
-      // If we're in a flow, redirect back to the flow
+      // If we're in a flow, redirect back to the flow with success state
       if (isFlow && returnTo && step && agentParam) {
-        router.push(`${returnTo}?step=tasks&agent=${agentParam}&tableCreated=${result.table_id}`);
+        router.push(`${returnTo}?step=${step}&agent=${agentParam}&tableCreated=${result.table_id}&tableSuccess=true`);
       } else {
         router.push(`/tables/${result.table_id}`);
       }

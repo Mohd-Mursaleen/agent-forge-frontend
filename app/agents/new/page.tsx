@@ -122,10 +122,18 @@ export default function NewAgentPage() {
   };
 
   const handleSkipTable = () => {
+    // Clear success states when moving to next step
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete('tableSuccess');
+    window.history.replaceState({}, '', newUrl.toString());
     setCurrentStep("tasks");
   };
 
   const handleSkipTasks = () => {
+    // Clear success states when moving to next step
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.delete('taskSuccess');
+    window.history.replaceState({}, '', newUrl.toString());
     setCurrentStep("complete");
   };
 
@@ -319,29 +327,47 @@ export default function NewAgentPage() {
                     FAQs, or any domain-specific data.
                   </p>
                   
-                  {createdTableId && (
+                  {(createdTableId || searchParams.get('tableSuccess')) && (
                     <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-800 font-medium">✓ Table created successfully!</p>
-                      <p className="text-sm text-green-600 mt-1">You can add more tables later or continue to create tasks.</p>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-green-800 font-medium">Table created successfully!</p>
+                          <p className="text-sm text-green-600 mt-1">
+                            Your table has been added to the agent. You can create more tables or continue to the next step.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
-                  <div className="flex gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
                       onClick={() => router.push(`/agents/${createdAgent?.id}/tables/new?flow=true&returnTo=/agents/new&step=table&agent=${createdAgent?.id}`)}
                       className="bg-slate-800 text-white hover:bg-slate-900"
                     >
                       <Database className="h-4 w-4 mr-2" />
-                      {createdTableId ? "Create Another Table" : "Create Table"}
+                      {createdTableId || searchParams.get('tableSuccess') ? "Create Another Table" : "Create Table"}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={handleSkipTable}
+                      className="border-slate-300"
                     >
-                      {createdTableId ? "Continue to Tasks" : "Skip for Now"}
+                      {createdTableId || searchParams.get('tableSuccess') ? "Continue to Tasks" : "Skip for Now"}
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </div>
+                  
+                  {(createdTableId || searchParams.get('tableSuccess')) && (
+                    <div className="text-center">
+                      <p className="text-sm text-slate-500">
+                        You can always add more tables later from the agent dashboard
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -357,29 +383,47 @@ export default function NewAgentPage() {
                     You can add them now or later from the agent dashboard.
                   </p>
                   
-                  {searchParams.get('taskCreated') && (
+                  {(searchParams.get('taskCreated') || searchParams.get('taskSuccess')) && (
                     <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-800 font-medium">✓ Task created successfully!</p>
-                      <p className="text-sm text-green-600 mt-1">You can add more tasks later or finish the setup.</p>
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-green-800 font-medium">Task created successfully!</p>
+                          <p className="text-sm text-green-600 mt-1">
+                            Your task has been added to the agent. You can create more tasks or finish the setup.
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   )}
                   
-                  <div className="flex gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
                       onClick={() => router.push(`/agents/${createdAgent?.id}/tasks/new?flow=true&returnTo=/agents/new&step=tasks&agent=${createdAgent?.id}${createdTableId ? `&tableCreated=${createdTableId}` : ''}`)}
                       className="bg-slate-800 text-white hover:bg-slate-900"
                     >
                       <Settings className="h-4 w-4 mr-2" />
-                      {searchParams.get('taskCreated') ? "Create Another Task" : "Create Task"}
+                      {searchParams.get('taskCreated') || searchParams.get('taskSuccess') ? "Create Another Task" : "Create Task"}
                     </Button>
                     <Button
                       variant="outline"
                       onClick={handleSkipTasks}
+                      className="border-slate-300"
                     >
-                      {searchParams.get('taskCreated') ? "Finish Setup" : "Skip for Now"}
+                      {searchParams.get('taskCreated') || searchParams.get('taskSuccess') ? "Finish Setup" : "Skip for Now"}
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </div>
+                  
+                  {(searchParams.get('taskCreated') || searchParams.get('taskSuccess')) && (
+                    <div className="text-center">
+                      <p className="text-sm text-slate-500">
+                        You can always add more tasks later from the agent dashboard
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -398,9 +442,34 @@ export default function NewAgentPage() {
                     <h3 className="text-xl font-semibold text-slate-900 mb-2">
                       {createdAgent?.name} is ready!
                     </h3>
-                    <p className="text-slate-600">
-                      Your agent has been created successfully. You can now start chatting with it 
-                      or add more tables and tasks.
+                    <p className="text-slate-600 mb-4">
+                      Your agent has been created successfully with the following components:
+                    </p>
+                    
+                    {/* Summary of what was created */}
+                    <div className="bg-slate-50 rounded-lg p-4 text-left max-w-md mx-auto">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Bot className="w-4 h-4 text-slate-600" />
+                          <span className="text-sm font-medium">Agent: {createdAgent?.name}</span>
+                        </div>
+                        {(createdTableId || searchParams.get('tableCreated')) && (
+                          <div className="flex items-center gap-2">
+                            <Database className="w-4 h-4 text-slate-600" />
+                            <span className="text-sm">Data tables configured</span>
+                          </div>
+                        )}
+                        {(searchParams.get('taskCreated') || searchParams.get('taskSuccess')) && (
+                          <div className="flex items-center gap-2">
+                            <Settings className="w-4 h-4 text-slate-600" />
+                            <span className="text-sm">Tasks configured</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <p className="text-slate-600 text-sm">
+                      You can now start chatting with your agent or add more tables and tasks from the dashboard.
                     </p>
                   </div>
                   

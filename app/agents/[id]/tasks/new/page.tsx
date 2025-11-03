@@ -101,9 +101,9 @@ export default function NewTaskPage() {
         table_id: taskData.table_id,
       }, useEnhancement && !enhancedDescription); // Only auto-enhance if we don't have a preview
       
-      // If we're in a flow, redirect back to the flow
+      // If we're in a flow, redirect back to the flow with success state
       if (isFlow && returnTo && agentParam) {
-        router.push(`${returnTo}?step=complete&agent=${agentParam}${tableCreated ? `&tableCreated=${tableCreated}` : ''}&taskCreated=${task.id}`);
+        router.push(`${returnTo}?step=${step}&agent=${agentParam}${tableCreated ? `&tableCreated=${tableCreated}` : ''}&taskCreated=${task.id}&taskSuccess=true`);
       } else {
         router.push(`/tasks/${task.id}`);
       }
