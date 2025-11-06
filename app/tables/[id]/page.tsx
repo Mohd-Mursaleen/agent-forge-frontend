@@ -7,9 +7,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createApiClient, type VectorTable, type VectorRecord } from "@/lib/api";
-import { Database, ArrowLeft, Plus, Search, Download, Edit, Trash2, Settings } from "lucide-react";
+import { Database, ArrowLeft, Plus, Search, Download, Edit, Trash2, Settings, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 import { useConfirmDialog } from "@/components/confirm-dialog";
+
+// Utility to convert display name to snake_case
+function toSnakeCase(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+}
 
 // Utility to download current view as CSV
 function downloadCSV(rows: VectorRecord[], columns: string[], filename: string = "data.csv") {
@@ -38,6 +46,7 @@ export default function TableDetailPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<VectorRecord[]>([]);
   const [searching, setSearching] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
@@ -49,6 +58,9 @@ export default function TableDetailPage() {
           api.getTable(tableId),
           api.getRecords(tableId),
         ]);
+        
+
+        
         setTable(tableData);
         setRecords(recordsData);
       } catch (error: any) {
@@ -80,6 +92,26 @@ export default function TableDetailPage() {
       console.error("Search error:", error);
     } finally {
       setSearching(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const token = await getToken();
+      const api = createApiClient(token || undefined);
+      const [tableData, recordsData] = await Promise.all([
+        api.getTable(tableId),
+        api.getRecords(tableId),
+      ]);
+      setTable(tableData);
+      setRecords(recordsData);
+      setSearchResults([]); // Clear search results on refresh
+      setSearchQuery(""); // Clear search query
+    } catch (error) {
+      console.error("Failed to refresh data:", error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
@@ -119,7 +151,12 @@ export default function TableDetailPage() {
     );
   }
 
-  const columns: string[] = table.columns ? table.columns.map(col => col.name) : [];
+  // Get columns with both snake_case names and display names
+  const columnInfo = table.columns ? table.columns.map(col => ({
+    name: col.name, // snake_case version for data access
+    displayName: col.description || col.name, // display name for UI
+  })) : [];
+  
   const displayRecords = searchResults.length > 0 ? searchResults : records;
 
   return (
@@ -203,6 +240,15 @@ export default function TableDetailPage() {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => router.push(`/tables/${tableId}/edit`)}
             >
               <Settings className="h-4 w-4 mr-2" />
@@ -219,7 +265,7 @@ export default function TableDetailPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => downloadCSV(displayRecords, columns, `${table.name}-records.csv`)}
+              onClick={() => downloadCSV(displayRecords, columnInfo.map(c => c.name), `${table.name}-records.csv`)}
             >
               <Download className="h-4 w-4 mr-2" />
               Download CSV
@@ -245,8 +291,10 @@ export default function TableDetailPage() {
                 <table className="min-w-[500px] w-full border-separate border-spacing-y-[2px] text-sm">
                   <thead>
                     <tr className="bg-slate-50">
-                      {columns.map(col => (
-                        <th key={col} className="px-4 py-2 text-left font-semibold text-slate-700">{col}</th>
+                      {columnInfo.map(col => (
+                        <th key={col.name} className="px-4 py-2 text-left font-semibold text-slate-700">
+                          {col.displayName}
+                        </th>
                       ))}
                       {displayRecords.some(r => 'similarity' in r) && (
                         <th className="px-4 py-2 text-left font-semibold text-slate-700">Similarity</th>
@@ -257,13 +305,29 @@ export default function TableDetailPage() {
                   <tbody>
                     {displayRecords.map(record => (
                       <tr key={record.id} className="bg-white hover:bg-slate-50">
-                        {columns.map(col => (
-                          <td key={col} className="px-4 py-2 text-slate-900">
-                            {typeof record.data[col] === "object"
-                              ? JSON.stringify(record.data[col])
-                              : String(record.data[col] ?? "")}
-                          </td>
-                        ))}
+                        {columnInfo.map(col => {
+                          // Try to get value using snake_case name first, then try other variations
+                          let value = record.data[col.name];
+                          if (value === undefined || value === null) {
+                            // Try to find the value with different naming conventions
+                            const dataKeys = Object.keys(record.data);
+                            const matchingKey = dataKeys.find(key => 
+                              toSnakeCase(key) === col.name || 
+                              key.toLowerCase() === col.name.toLowerCase()
+                            );
+                            if (matchingKey) {
+                              value = record.data[matchingKey];
+                            }
+                          }
+                          
+                          return (
+                            <td key={col.name} className="px-4 py-2 text-slate-900">
+                              {typeof value === "object"
+                                ? JSON.stringify(value)
+                                : String(value ?? "")}
+                            </td>
+                          );
+                        })}
                         {'similarity' in record && (
                           <td className="px-4 py-2 text-slate-500">
                             {(record as any).similarity.toFixed(3)}

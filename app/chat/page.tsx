@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,7 @@ import { Bot, MessageSquare } from "lucide-react";
 import { motion } from "framer-motion";
 import { ChatWindow } from "@/components/chat-window";
 
-export default function ChatPage() {
+function ChatPageContent() {
   const { getToken } = useAuth();
   const searchParams = useSearchParams();
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -123,6 +123,20 @@ export default function ChatPage() {
         </div>
       </div>
       </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        </div>
+      </div>
+    }>
+      <ChatPageContent />
+    </Suspense>
   );
 }
 

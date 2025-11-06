@@ -40,7 +40,6 @@ export default function NewTaskPage() {
   const [enhancing, setEnhancing] = useState(false);
   const [enhancedDescription, setEnhancedDescription] = useState<string | null>(null);
   const [showEnhancedDescription, setShowEnhancedDescription] = useState(false);
-  const [useEnhancement, setUseEnhancement] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
@@ -92,14 +91,14 @@ export default function NewTaskPage() {
       const api = createApiClient(token || undefined);
       
       // Use enhanced description if available and user wants enhancement
-      const finalDescription = useEnhancement && enhancedDescription ? enhancedDescription : taskData.task_description;
+      const finalDescription =  enhancedDescription ? enhancedDescription : taskData.task_description;
       
       const task = await api.createTaskWithEnhancement({
         agent_id: agentId,
         task_name: taskData.task_name,
         task_description: finalDescription,
         table_id: taskData.table_id,
-      }, useEnhancement && !enhancedDescription); // Only auto-enhance if we don't have a preview
+      }, !enhancedDescription); // Only auto-enhance if we don't have a preview
       
       // If we're in a flow, redirect back to the flow with success state
       if (isFlow && returnTo && agentParam) {
@@ -194,7 +193,7 @@ export default function NewTaskPage() {
                 <div className="flex items-center justify-between mb-2">
                   <Label htmlFor="task_description">Task Description *</Label>
                   <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 text-sm">
+                    {/* <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         checked={useEnhancement}
@@ -202,7 +201,7 @@ export default function NewTaskPage() {
                         className="rounded"
                       />
                       <span className="text-slate-600">Use AI Enhancement</span>
-                    </label>
+                    </label> */}
                     {taskData.task_name && taskData.task_description && (
                       <Button
                         type="button"
@@ -262,7 +261,7 @@ export default function NewTaskPage() {
                 </p>
               </div>
 
-              <div>
+              {/* <div>
                 <Label htmlFor="table_id">Data Source (Optional)</Label>
                 <select
                   id="table_id"
@@ -287,7 +286,7 @@ export default function NewTaskPage() {
                     </p>
                   </div>
                 )}
-              </div>
+              </div> */}
 
               {tables.length === 0 && (
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">

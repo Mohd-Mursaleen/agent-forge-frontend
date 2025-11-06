@@ -129,11 +129,11 @@ export default function NewRecordPage() {
               {table.columns.map((column) => (
                 <div key={column.name}>
                   <Label htmlFor={column.name}>
-                    {column.name}
+                    {column.description || column.name}
                     <span className="ml-2 text-xs text-slate-500">({column.type})</span>
                   </Label>
-                  {column.description && (
-                    <p className="text-sm text-slate-500 mb-2">{column.description}</p>
+                  {column.description && column.description !== column.name && (
+                    <p className="text-sm text-slate-500 mb-2">Database field: {column.name}</p>
                   )}
                   
                   {column.type === "string" && column.name.includes("description") ? (
@@ -141,7 +141,7 @@ export default function NewRecordPage() {
                       id={column.name}
                       value={formData[column.name] || ""}
                       onChange={(e) => handleFieldChange(column.name, e.target.value)}
-                      placeholder={`Enter ${column.name}`}
+                      placeholder={`Enter ${column.description || column.name}`}
                       rows={3}
                     />
                   ) : column.type === "number" ? (
@@ -151,14 +151,14 @@ export default function NewRecordPage() {
                       step="any"
                       value={formData[column.name] || ""}
                       onChange={(e) => handleFieldChange(column.name, parseFloat(e.target.value) || "")}
-                      placeholder={`Enter ${column.name}`}
+                      placeholder={`Enter ${column.description || column.name}`}
                     />
                   ) : (
                     <Input
                       id={column.name}
                       value={formData[column.name] || ""}
                       onChange={(e) => handleFieldChange(column.name, e.target.value)}
-                      placeholder={`Enter ${column.name}`}
+                      placeholder={`Enter ${column.description || column.name}`}
                     />
                   )}
                 </div>

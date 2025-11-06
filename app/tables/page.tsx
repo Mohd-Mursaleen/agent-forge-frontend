@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { createApiClient, type VectorTable , type Agent} from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, ExternalLink } from "lucide-react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -29,6 +30,7 @@ function downloadCSV(data: any[], filename = "table.csv") {
 
 export default function TablesPage() {
   const { getToken } = useAuth();
+  const router = useRouter();
   const [tables, setTables] = useState<VectorTable[]>([]);
   const [agents, setAgents] = useState<Record<string, Agent>>({});
 
@@ -66,22 +68,51 @@ export default function TablesPage() {
     {
       accessorKey: "name",
       header: "Name",
-      cell: info => <span className="font-semibold text-slate-900">{info.getValue()}</span>,
+      cell: info => <span className="font-semibold text-slate-900">{String(info.getValue() || '')}</span>,
     },
     {
       accessorKey: "description",
       header: "Description",
-      cell: info => <span className="text-slate-600">{info.getValue()}</span>,
+      cell: info => <span className="text-slate-600">{String(info.getValue() || '')}</span>,
     },
     {
       accessorKey: "row_count",
       header: "Rows",
-      cell: info => <span className="text-slate-900">{info.getValue()}</span>,
+      cell: info => <span className="text-slate-900">{String(info.getValue() || '0')}</span>,
     },
     {
       accessorKey: "display_name",
       header: "Display Name",
-      cell: info => <span className="text-slate-700">{info.getValue()}</span>,
+      cell: info => <span className="text-slate-700">{String(info.getValue() || '')}</span>,
+    },
+    {
+      id: "agent",
+      header: "Agent",
+      cell: ({ row }) => {
+        const table = row.original;
+        const agent = agents[table.agent_id];
+        return <span className="text-slate-600">{agent?.name || 'Unknown'}</span>;
+      },
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const table = row.original;
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/tables/${table.id}`);
+            }}
+            className="h-8 w-8 p-0"
+          >
+            <ExternalLink className="h-4 w-4" />
+          </Button>
+        );
+      },
     },
   ];
 
@@ -130,7 +161,11 @@ export default function TablesPage() {
             </thead>
             <tbody>
               {tableInstance.getRowModel().rows.map(row => (
-                <tr key={row.id} className="hover:bg-slate-50 transition">
+                <tr 
+                  key={row.id} 
+                  className="hover:bg-slate-50 transition cursor-pointer"
+                  onClick={() => router.push(`/tables/${row.original.id}`)}
+                >
                   {row.getVisibleCells().map(cell => (
                     <td
                       key={cell.id}

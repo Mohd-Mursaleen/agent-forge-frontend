@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect,Suspense } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { motion } from "framer-motion";
 
 type Step = "agent" | "table" | "tasks" | "complete";
 
-export default function NewAgentPage() {
+function NewAgentPageContent() {
   const { getToken } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -33,7 +33,7 @@ export default function NewAgentPage() {
   const [enhancing, setEnhancing] = useState(false);
   const [enhancedPrompt, setEnhancedPrompt] = useState<string | null>(null);
   const [showEnhancedPrompt, setShowEnhancedPrompt] = useState(false);
-  const [useEnhancement, setUseEnhancement] = useState(true);
+
 
   // Check URL parameters to restore flow state
   useEffect(() => {
@@ -43,16 +43,19 @@ export default function NewAgentPage() {
     const taskCreated = searchParams.get('taskCreated');
     
     if (step && agentId) {
-      setCurrentStep(step);
-      // Load agent data if we're returning to the flow
-      if (agentId) {
+      // Only update step if it's different from current step
+      if (step !== currentStep) {
+        setCurrentStep(step);
+      }
+      // Load agent data if we're returning to the flow and don't have it
+      if (agentId && !createdAgent) {
         loadAgentData(agentId);
       }
-      if (tableCreated) {
+      if (tableCreated && !createdTableId) {
         setCreatedTableId(tableCreated);
       }
     }
-  }, [searchParams]);
+  }, [searchParams, currentStep, createdAgent, createdTableId]);
 
   const loadAgentData = async (agentId: string) => {
     try {
@@ -102,13 +105,13 @@ export default function NewAgentPage() {
       const token = await getToken();
       const api = createApiClient(token || undefined);
       
-      // Use enhanced prompt if available and user wants enhancement
-      const finalPrompt = useEnhancement && enhancedPrompt ? enhancedPrompt : agentData.system_prompt;
+      // Use enhanced prompt if available, otherwise use original
+      const finalPrompt = showEnhancedPrompt && enhancedPrompt ? enhancedPrompt : agentData.system_prompt;
       
-      const agent = await api.createAgentWithEnhancement({
+      const agent = await api.createAgent({
         ...agentData,
         system_prompt: finalPrompt,
-      }, useEnhancement && !enhancedPrompt); // Only auto-enhance if we don't have a preview
+      });
       
       setCreatedAgent(agent);
       setCurrentStep("table");
@@ -122,17 +125,33 @@ export default function NewAgentPage() {
   };
 
   const handleSkipTable = () => {
-    // Clear success states when moving to next step
+    // Update step directly and let URL sync happen
+    setCurrentStep("tasks");
+    
+    // Clear success states in URL
     const newUrl = new URL(window.location.href);
     newUrl.searchParams.delete('tableSuccess');
+    newUrl.searchParams.set('step', 'tasks');
+    if (createdAgent?.id) {
+      newUrl.searchParams.set('agent', createdAgent.id);
+    }
+    if (createdTableId) {
+      newUrl.searchParams.set('tableCreated', createdTableId);
+    }
     window.history.replaceState({}, '', newUrl.toString());
-    setCurrentStep("tasks");
   };
 
   const handleSkipTasks = () => {
-    // Clear success states when moving to next step
+    // Clear success states and update step in URL
     const newUrl = new URL(window.location.href);
     newUrl.searchParams.delete('taskSuccess');
+    newUrl.searchParams.set('step', 'complete');
+    if (createdAgent?.id) {
+      newUrl.searchParams.set('agent', createdAgent.id);
+    }
+    if (createdTableId) {
+      newUrl.searchParams.set('tableCreated', createdTableId);
+    }
     window.history.replaceState({}, '', newUrl.toString());
     setCurrentStep("complete");
   };
@@ -233,30 +252,19 @@ export default function NewAgentPage() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <Label htmlFor="system_prompt">System Prompt *</Label>
-                      <div className="flex items-center gap-2">
-                        <label className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={useEnhancement}
-                            onChange={(e) => setUseEnhancement(e.target.checked)}
-                            className="rounded"
-                          />
-                          <span className="text-slate-600">Use AI Enhancement</span>
-                        </label>
-                        {agentData.name && agentData.system_prompt && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={handleEnhancePrompt}
-                            disabled={enhancing}
-                            className="text-xs"
-                          >
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            {enhancing ? "Enhancing..." : "Preview Enhancement"}
-                          </Button>
-                        )}
-                      </div>
+                      {agentData.name && agentData.system_prompt && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleEnhancePrompt}
+                          disabled={enhancing}
+                          className="text-xs"
+                        >
+                          <Sparkles className="w-3 h-3 mr-1" />
+                          {enhancing ? "Enhancing..." : "Preview Enhancement"}
+                        </Button>
+                      )}
                     </div>
                     <Textarea
                       id="system_prompt"
@@ -494,5 +502,18 @@ export default function NewAgentPage() {
         </Card>
       </motion.div>
     </div>
+  );
+}
+export default function NewAgentPage() {
+  return (
+    <Suspense fallback={
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+        </div>
+      </div>
+    }>
+      <NewAgentPageContent />
+    </Suspense>
   );
 }

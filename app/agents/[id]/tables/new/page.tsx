@@ -12,6 +12,14 @@ import { createApiClient, type Agent, type ColumnSchema } from "@/lib/api";
 import { ArrowLeft, Plus, Trash2, Save, Upload } from "lucide-react";
 import { motion } from "framer-motion";
 
+// Utility to convert display name to snake_case
+function toSnakeCase(str: string): string {
+  return str
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_]/g, '');
+}
+
 export default function NewTablePage() {
   const { getToken } = useAuth();
   const params = useParams();
@@ -36,8 +44,8 @@ export default function NewTablePage() {
     display_name: "",
     description: "",
     columns: [
-      { name: "", type: "string", description: "" }
-    ] as ColumnSchema[]
+      { name: "", displayName: "", type: "string", description: "" }
+    ] as (ColumnSchema & { displayName?: string })[]
   });
 
   const [csvFile, setCsvFile] = useState<File | null>(null);
@@ -63,7 +71,7 @@ export default function NewTablePage() {
   const addColumn = () => {
     setTableData({
       ...tableData,
-      columns: [...tableData.columns, { name: "", type: "string", description: "" }]
+      columns: [...tableData.columns, { name: "", displayName: "", type: "string", description: "" }]
     });
   };
 
@@ -76,9 +84,15 @@ export default function NewTablePage() {
     }
   };
 
-  const updateColumn = (index: number, field: keyof ColumnSchema, value: string) => {
+  const updateColumn = (index: number, field: keyof (ColumnSchema & { displayName?: string }), value: string) => {
     const updatedColumns = [...tableData.columns];
     updatedColumns[index] = { ...updatedColumns[index], [field]: value };
+    
+    // If updating displayName, automatically update the name field to snake_case
+    if (field === 'displayName') {
+      updatedColumns[index].name = toSnakeCase(value);
+    }
+    
     setTableData({ ...tableData, columns: updatedColumns });
   };
 
@@ -91,12 +105,21 @@ export default function NewTablePage() {
       const token = await getToken();
       const api = createApiClient(token || undefined);
       
+      // Process columns to ensure proper format
+      const processedColumns = tableData.columns
+        .filter(col => col.displayName?.trim() || col.name.trim())
+        .map(col => ({
+          name: col.name || toSnakeCase(col.displayName || ''),
+          type: col.type,
+          description: col.displayName || col.description || col.name
+        }));
+
       const table = await api.createTable({
         agent_id: agentId,
         name: tableData.name,
         display_name: tableData.display_name,
         description: tableData.description,
-        columns: tableData.columns.filter(col => col.name.trim() !== "")
+        columns: processedColumns
       });
       
       // If we're in a flow, redirect back to the flow with success state
@@ -240,24 +263,23 @@ export default function NewTablePage() {
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="name">Table Name *</Label>
-                    <Input
-                      id="name"
-                      value={tableData.name}
-                      onChange={(e) => setTableData({ ...tableData, name: e.target.value })}
-                      placeholder="e.g., medicines, products, faqs"
-                      required
-                    />
-                  </div>
-                  {/* <div>
-                    <Label htmlFor="display_name">Display Name</Label>
+                    <Label htmlFor="display_name">Table Name *</Label>
                     <Input
                       id="display_name"
                       value={tableData.display_name}
-                      onChange={(e) => setTableData({ ...tableData, display_name: e.target.value })}
+                      onChange={(e) => {
+                        const displayName = e.target.value;
+                        const snakeCaseName = toSnakeCase(displayName);
+                        setTableData({ 
+                          ...tableData, 
+                          display_name: displayName,
+                          name: snakeCaseName 
+                        });
+                      }}
                       placeholder="e.g., Medicine Inventory"
+                      required
                     />
-                  </div> */}
+                  </div>
                 </div>
 
                 <div>
@@ -293,9 +315,9 @@ export default function NewTablePage() {
                           <div>
                             <Label>Column Name</Label>
                             <Input
-                              value={column.name}
-                              onChange={(e) => updateColumn(index, "name", e.target.value)}
-                              placeholder="e.g., medicine_name"
+                              value={column.displayName || ''}
+                              onChange={(e) => updateColumn(index, "displayName", e.target.value)}
+                              placeholder="e.g., Medicine Name"
                               required
                             />
                           </div>
@@ -371,17 +393,22 @@ export default function NewTablePage() {
               <form onSubmit={handleCsvImport} className="space-y-6">
                 {/* Basic Info */}
                 <div>
-                  <Label htmlFor="csv_name">Table Name *</Label>
+                  <Label htmlFor="csv_display_name">Table Name *</Label>
                   <Input
-                    id="csv_name"
-                    value={tableData.name}
-                    onChange={(e) => setTableData({ ...tableData, name: e.target.value })}
-                    placeholder="e.g., medicines, products"
+                    id="csv_display_name"
+                    value={tableData.display_name}
+                    onChange={(e) => {
+                      const displayName = e.target.value;
+                      const snakeCaseName = toSnakeCase(displayName);
+                      setTableData({ 
+                        ...tableData, 
+                        display_name: displayName,
+                        name: snakeCaseName 
+                      });
+                    }}
+                    placeholder="e.g., Medicine Inventory"
                     required
                   />
-                  <p className="text-sm text-slate-500 mt-1">
-                    Use lowercase with underscores (e.g., medicine_inventory). Display name will be auto-generated.
-                  </p>
                 </div>
 
                 <div>

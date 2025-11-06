@@ -4,7 +4,8 @@ import { Bot, LayoutDashboard } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Agents", href: "/agents", icon: Bot }
+  { name: "Agents", href: "/agents", icon: Bot },
+  { name: "Tables", href: "/tables", icon: Bot }
 ];
 
 export function Header() {
