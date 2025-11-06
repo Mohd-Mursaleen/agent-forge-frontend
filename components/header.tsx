@@ -1,11 +1,12 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
-import { Bot, LayoutDashboard } from "lucide-react";
+import { Bot, LayoutDashboard, Table, MessageSquare } from "lucide-react";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Agents", href: "/agents", icon: Bot },
-  { name: "Tables", href: "/tables", icon: Bot }
+  { name: "Tables", href: "/tables", icon: Table },
+  { name: "Chat", href: "/chat", icon: MessageSquare }
 ];
 
 export function Header() {
@@ -14,12 +15,12 @@ export function Header() {
 
   return (
     <header className="navbar">
-      <div className="navbar-content">
+      <div className="navbar-content ">
         {/* Brand */}
         <div className="navbar-brand">
             <button onClick={() => router.push("/dashboard")} className="flex items-center gap-2">
           <span className="navbar-logo">
-            <Bot size={20} />
+            <Bot size={30} />
           </span>
           <span className="text-lg font-semibold tracking-tight">AgentForge</span>
         </button>

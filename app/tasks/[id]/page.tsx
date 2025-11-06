@@ -188,7 +188,7 @@ export default function TaskDetailPage() {
                   <div className="space-y-4">
                     <div>
                       <h4 className="font-medium text-slate-900 mb-2">Operation Type</h4>
-                      <Badge variant="outline">{task.tools.operation_type}</Badge>
+                      <Badge variant="destructive" >{task.tools.operation_type}</Badge>
                     </div>
                     
                     <div>

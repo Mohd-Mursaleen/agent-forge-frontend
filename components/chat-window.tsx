@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createApiClient, type ChatResponse } from "@/lib/api";
 import { Send, X, Bot, User } from "lucide-react";
-import { motion } from "framer-motion";
-import "../styles/chat-animations.css";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
   tool_calls?: Array<{ tool: string; input: any; output: string }>;
-  isStreaming?: boolean;
-  isThinking?: boolean;
 }
 
 interface ChatWindowProps {
@@ -34,10 +31,7 @@ export function ChatWindow({ agentId, onClose }: ChatWindowProps) {
   };
 
   useEffect(() => {
-    // Always scroll to bottom for new messages, but do it smoothly
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
-    }
+
   }, [messages]);
 
   const handleSend = async () => {
@@ -45,133 +39,47 @@ export function ChatWindow({ agentId, onClose }: ChatWindowProps) {
     const userMessage = input.trim();
     setInput("");
     setLoading(true);
-    
-    // Add user message
     const newMessages: Message[] = [...messages, { role: "user", content: userMessage }];
     setMessages(newMessages);
-    
-    // Add placeholder for assistant message with thinking state
-    const assistantMessageIndex = newMessages.length;
-    const messagesWithPlaceholder = [
-      ...newMessages,
-      { role: "assistant" as const, content: "", isThinking: true, isStreaming: false }
-    ];
-    setMessages(messagesWithPlaceholder);
-
     try {
       const token = await getToken();
       const api = createApiClient(token || undefined);
-      
-      await api.streamChat(
-        {
-          agent_id: agentId,
-          message: userMessage,
-          conversation_history: messages.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        },
-        // onMessage callback - called for each content delta
-        (_delta: string, fullContent: string) => {
-          setMessages(prev => {
-            const updated = [...prev];
-            if (updated[assistantMessageIndex]) {
-              updated[assistantMessageIndex] = {
-                ...updated[assistantMessageIndex],
-                content: fullContent,
-                isStreaming: true,
-                isThinking: false, // Stop thinking when content starts
-              };
-            }
-            return updated;
-          });
-        },
-        // onComplete callback - called when streaming is done
-        (finalMessage: string) => {
-          setMessages(prev => {
-            const updated = [...prev];
-            if (updated[assistantMessageIndex]) {
-              updated[assistantMessageIndex] = {
-                ...updated[assistantMessageIndex],
-                content: finalMessage,
-                isStreaming: false,
-                isThinking: false,
-              };
-            }
-            return updated;
-          });
-          setLoading(false);
-        },
-        // onError callback - called if there's an error
-        async (error: string) => {
-          console.warn('Streaming failed, falling back to regular chat:', error);
-          
-          // Fallback to regular chat API
-          try {
-            const response: ChatResponse = await api.chat({
-              agent_id: agentId,
-              message: userMessage,
-              conversation_history: messages.map((m) => ({
-                role: m.role,
-                content: m.content,
-              })),
-            });
-            
-            setMessages(prev => {
-              const updated = [...prev];
-              if (updated[assistantMessageIndex]) {
-                updated[assistantMessageIndex] = {
-                  ...updated[assistantMessageIndex],
-                  content: response.message,
-                  tool_calls: response.tool_calls,
-                  isStreaming: false,
-                  isThinking: false,
-                };
-              }
-              return updated;
-            });
-          } catch (fallbackError) {
-            setMessages(prev => {
-              const updated = [...prev];
-              if (updated[assistantMessageIndex]) {
-                updated[assistantMessageIndex] = {
-                  ...updated[assistantMessageIndex],
-                  content: "Sorry, I encountered an error. Please try again.",
-                  isStreaming: false,
-                  isThinking: false,
-                };
-              }
-              return updated;
-            });
-          }
-          
-          setLoading(false);
-        },
-        token || undefined
-      );
-    } catch (error) {
-      setMessages(prev => {
-        const updated = [...prev];
-        if (updated[assistantMessageIndex]) {
-          updated[assistantMessageIndex] = {
-            ...updated[assistantMessageIndex],
-            content: "Sorry, I encountered an error. Please try again.",
-            isStreaming: false,
-          };
-        }
-        return updated;
+      const response: ChatResponse = await api.chat({
+        agent_id: agentId,
+        message: userMessage,
+        conversation_history: messages.map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
       });
+      setMessages([
+        ...newMessages,
+        {
+          role: "assistant",
+          content: response.message,
+          tool_calls: response.tool_calls,
+        },
+      ]);
+    } catch (error) {
+      setMessages([
+        ...newMessages,
+        {
+          role: "assistant",
+          content: "Sorry, I encountered an error. Please try again.",
+        },
+      ]);
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20 }}
-      className="w-full bg-white border border-slate-200 rounded-xl shadow-lg flex flex-col overflow-hidden"
-      style={{ height: "600px", maxHeight: "600px" }}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      className="w-full h-full bg-white border border-slate-200 rounded-xl shadow-lg flex flex-col"
+      style={{ height: "calc(100vh - 12rem)" }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50 rounded-t-xl">
@@ -220,23 +128,9 @@ export function ChatWindow({ agentId, onClose }: ChatWindowProps) {
                       : "bg-slate-800 text-white"
                   }`}
                 >
-                  {message.isThinking ? (
-                    <div className="flex items-center gap-2 text-slate-500">
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce typing-dot"></div>
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce typing-dot"></div>
-                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce typing-dot"></div>
-                      </div>
-                      <span className="text-xs">Thinking...</span>
-                    </div>
-                  ) : (
-                    <>
-                      {message.content}
-                      {message.isStreaming && message.content && (
-                        <span className="inline-block w-0.5 h-4 bg-slate-600 ml-1 streaming-cursor"></span>
-                      )}
-                    </>
-                  )}
+                  
+                    {message.content}
+                     
                   {message.tool_calls && message.tool_calls.length > 0 && (
                     <div className="mt-2 pt-2 border-t border-slate-200 text-xs text-slate-500">
                       {message.tool_calls.map((toolCall, tIdx) => (
@@ -250,6 +144,21 @@ export function ChatWindow({ agentId, onClose }: ChatWindowProps) {
               </div>
             </div>
           ))
+        )}
+        {loading && (
+          <div className="flex w-full justify-start">
+            <div className="flex items-start gap-3 max-w-[80%]">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                <Bot className="w-5 h-5 text-slate-600" />
+              </div>
+              <div className="p-3 rounded-lg bg-white border border-slate-200 text-slate-500 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-400"></div>
+                  Thinking...
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         <div ref={messagesEndRef}></div>
@@ -282,11 +191,8 @@ export function ChatWindow({ agentId, onClose }: ChatWindowProps) {
           disabled={loading || !input.trim()}
           className="bg-slate-800 hover:bg-slate-900"
         >
-          {loading ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-          ) : (
+         
             <Send className="w-4 h-4" />
-          )}
         </Button>
       </form>
     </motion.div>

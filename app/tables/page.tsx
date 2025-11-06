@@ -66,25 +66,26 @@ export default function TablesPage() {
   // Table columns
   const columns: ColumnDef<VectorTable>[] = [
     {
-      accessorKey: "name",
-      header: "Name",
-      cell: info => <span className="font-semibold text-slate-900">{String(info.getValue() || '')}</span>,
+      accessorKey: "display_name",
+      header: "Display Name",
+      cell: info => <span className="font-semibold text-slate-700">{String(info.getValue() || '')}</span>,
     },
     {
       accessorKey: "description",
       header: "Description",
       cell: info => <span className="text-slate-600">{String(info.getValue() || '')}</span>,
     },
-    {
-      accessorKey: "row_count",
-      header: "Rows",
-      cell: info => <span className="text-slate-900">{String(info.getValue() || '0')}</span>,
-    },
-    {
-      accessorKey: "display_name",
-      header: "Display Name",
-      cell: info => <span className="text-slate-700">{String(info.getValue() || '')}</span>,
-    },
+    // {
+    //   accessorKey: "row_count",
+    //   header: "Rows",
+    //   cell: info => <span className="text-slate-900">{String(info.getValue() || '0')}</span>,
+    // },
+    
+    // {
+    //   accessorKey: "name",
+    //   header: "Name",
+    //   cell: info => <span className=" text-slate-900">{String(info.getValue() || '')}</span>,
+    // },
     {
       id: "agent",
       header: "Agent",
@@ -94,26 +95,26 @@ export default function TablesPage() {
         return <span className="text-slate-600">{agent?.name || 'Unknown'}</span>;
       },
     },
-    {
-      id: "actions",
-      header: "Actions",
-      cell: ({ row }) => {
-        const table = row.original;
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              router.push(`/tables/${table.id}`);
-            }}
-            className="h-8 w-8 p-0"
-          >
-            <ExternalLink className="h-4 w-4" />
-          </Button>
-        );
-      },
-    },
+    // {
+    //   id: "actions",
+    //   header: "Actions",
+    //   cell: ({ row }) => {
+    //     const table = row.original;
+    //     return (
+    //       <Button
+    //         variant="ghost"
+    //         size="sm"
+    //         onClick={(e) => {
+    //           e.stopPropagation();
+    //           router.push(`/tables/${table.id}`);
+    //         }}
+    //         className="h-8 w-8 p-0"
+    //       >
+    //         <ExternalLink className="h-4 w-4" />
+    //       </Button>
+    //     );
+    //   },
+    // },
   ];
 
   const tableInstance = useReactTable({
@@ -124,7 +125,7 @@ export default function TablesPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-5 py-10">
-      <div className="mb-8 flex items-center justify-between">
+      {/* <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-slate-900">Database Tables</h1>
         <Button
           className="flex items-center gap-2 bg-slate-800 text-white hover:bg-slate-900"
@@ -134,7 +135,9 @@ export default function TablesPage() {
           <Download className="h-4 w-4" />
           Download CSV
         </Button>
-      </div>
+      </div> */}
+      <h1 className="text-4xl font-bold text-slate-900 mb-8">Agent Tables</h1>
+
 
       <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-x-auto">
         {loading ? (
