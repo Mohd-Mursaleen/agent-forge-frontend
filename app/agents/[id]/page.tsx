@@ -10,6 +10,7 @@ import { Database, MessageSquare, Plus, ArrowLeft, Edit, Trash2 } from "lucide-r
 import { motion } from "framer-motion";
 import { ChatWindow } from "@/components/chat-window";
 import { useConfirmDialog } from "@/components/confirm-dialog";
+import ApiKeyGenerator from "@/components/api-key-generator";
 
 export default function AgentDetailPage() {
   const { getToken } = useAuth();
@@ -321,6 +322,11 @@ export default function AgentDetailPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* API Keys & Embedding */}
+            <div className="mt-6">
+              <ApiKeyGenerator agentId={agentId} />
+            </div>
           </motion.div>
         </div>
 
