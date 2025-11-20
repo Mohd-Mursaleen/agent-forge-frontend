@@ -62,6 +62,18 @@ export interface ChatResponse {
   }>;
 }
 
+export interface ApiKey {
+  id: string;
+  name: string;
+  api_key?: string; // Only present when creating a new key
+  masked_key?: string; // Present when listing keys (for security)
+  allowed_origins?: string[]; // Optional, can be empty array
+  agent_id?: string;
+  created_at?: string;
+  last_used?: string | null;
+  is_active?: boolean;
+}
+
 export class ApiClient {
   private client: AxiosInstance;
 
@@ -236,6 +248,45 @@ export class ApiClient {
 
   async createTaskWithEnhancement(task: Partial<Task> & { table_id?: string }, enhanceDescription: boolean = true): Promise<Task> {
     const { data } = await this.client.post(`/api/tasks?enhance_description=${enhanceDescription}`, task);
+    return data;
+  }
+
+  // API Keys
+  async getApiKeys(agentId: string): Promise<ApiKey[]> {
+    const { data } = await this.client.get(`/api/agents/${agentId}/api-keys`);
+    // Handle response structure: { success, agent_id, total_keys, keys: [...] }
+    if (data && data.keys && Array.isArray(data.keys)) {
+      return data.keys;
+    }
+    // Fallback for direct array response (if backend changes)
+    return Array.isArray(data) ? data : [];
+  }
+
+  async createApiKey(agentId: string, name: string, allowed_origins: string[]): Promise<ApiKey> {
+    const { data } = await this.client.post(`/api/agents/${agentId}/api-keys`, {
+      name,
+      allowed_origins,
+    });
+    return data;
+  }
+
+  async deleteApiKey(keyId: string): Promise<void> {
+    await this.client.delete(`/api/api-keys/${keyId}`);
+  }
+
+  // Embed Code
+  async getEmbedCode(agentId: string): Promise<{
+    agent_name: string;
+    agent_id: string;
+    api_key_id: string;
+    snippets: {
+      iframe: string;
+      javascript: string;
+      react: string;
+    };
+    integration_docs: string;
+  }> {
+    const { data } = await this.client.get(`/embed/${agentId}/`);
     return data;
   }
 }
