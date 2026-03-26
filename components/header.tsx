@@ -1,6 +1,7 @@
 "use client";
 import { useRouter, usePathname } from "next/navigation";
 import { Bot, LayoutDashboard, Table, MessageSquare } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -47,6 +48,7 @@ export function Header() {
               </button>
             ))}
         </nav>
+        <UserButton />
       </div>
     </header>
   );

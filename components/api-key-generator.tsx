@@ -89,8 +89,8 @@ export default function ApiKeyGenerator({ agentId }: ApiKeyGeneratorProps) {
 
   const handleDeleteKey = async (keyId: string, keyName: string) => {
     confirm({
-      title: "Delete API Key",
-      description: `Are you sure you want to delete the API key "${keyName}"? This action cannot be undone and the key will no longer work.`,
+      title: "Delete Key",
+      description: `Are you sure you want to delete the  key "${keyName}"? This action cannot be undone and the key will no longer work.`,
       confirmText: "Delete",
       variant: "destructive",
       onConfirm: async () => {
@@ -400,7 +400,7 @@ export default function MyPage() {
                     {key.api_key && (
                       <div className="space-y-3 pt-4 border-t border-slate-200">
                         <div>
-                          <Label className="text-sm">API Key</Label>
+                          <Label className="text-sm">Access Key</Label>
                           <div className="flex items-center gap-2 mt-1">
                             <pre className="flex-1 bg-slate-50 p-2 rounded text-xs overflow-x-auto">
                               {key.api_key}
@@ -477,7 +477,7 @@ export default function MyPage() {
                       </div>
                     )}
                       <p className="text-sm text-slate-500 mb-2">
-                          The API key value is not shown for security reasons. If you need to embed this agent, create a new API key to get the embed code.
+                          The Access key value is not shown for security reasons. If you need to embed this agent, create a new API key to get the embed code.
                         </p>
                   </CardContent>
                 </Card>

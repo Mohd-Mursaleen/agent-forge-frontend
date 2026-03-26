@@ -20,7 +20,7 @@ export default function DashboardPage() {
       try {
         const token = await getToken();
         const api = createApiClient(token || undefined);
-        const data = await api.getAgents();
+        const data = await api.getAgents(); 
         setAgents(data);
       } catch (error) {
         console.error("Failed to load agents:", error);
