@@ -93,8 +93,13 @@ export class ApiClient {
 
   // Agents
   async getAgents(): Promise<Agent[]> {
-    const { data } = await this.client.get("/api/agents/");
-    return data;
+    try {
+      const response = await this.client.get("/api/agents");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching agents:", error);
+      return [];
+    }
   }
 
   async getAgent(id: string): Promise<Agent> {
