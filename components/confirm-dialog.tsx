@@ -40,33 +40,30 @@ export function ConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <div className="flex items-center gap-3">
+          <div className="flex items-start gap-3">
             {variant === "destructive" && (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50">
+                <AlertTriangle className="h-4 w-4 text-red-600" />
               </div>
             )}
             <div>
               <DialogTitle>{title}</DialogTitle>
-              <DialogDescription className="mt-2">
+              <DialogDescription className="mt-1.5">
                 {description}
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
         <DialogFooter>
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-          >
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
             {cancelText}
           </Button>
           <Button
             variant={variant === "destructive" ? "destructive" : "default"}
+            size="sm"
             onClick={handleConfirm}
-            className={variant === "destructive" ? "bg-red-600 hover:bg-red-700" : ""}
           >
             {confirmText}
           </Button>
@@ -76,7 +73,6 @@ export function ConfirmDialog({
   );
 }
 
-// Hook for easier usage
 export function useConfirmDialog() {
   const [dialogState, setDialogState] = useState<{
     open: boolean;
@@ -101,16 +97,13 @@ export function useConfirmDialog() {
     variant?: "default" | "destructive";
     onConfirm: () => void;
   }) => {
-    setDialogState({
-      open: true,
-      ...options,
-    });
+    setDialogState({ open: true, ...options });
   };
 
   const ConfirmDialogComponent = () => (
     <ConfirmDialog
       {...dialogState}
-      onOpenChange={(open) => setDialogState(prev => ({ ...prev, open }))}
+      onOpenChange={(open) => setDialogState((prev) => ({ ...prev, open }))}
     />
   );
 

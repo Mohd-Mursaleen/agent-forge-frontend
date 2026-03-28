@@ -8,15 +8,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { createApiClient, type Agent } from "@/lib/api";
-import { ArrowLeft, Save } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowLeft } from "lucide-react";
 
 export default function EditAgentPage() {
   const { getToken } = useAuth();
   const params = useParams();
   const router = useRouter();
   const agentId = params.id as string;
+  const { toast } = useToast();
 
   const [agent, setAgent] = useState<Agent | null>(null);
   const [formData, setFormData] = useState({
@@ -28,6 +30,9 @@ export default function EditAgentPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    /**
+     * Loads agent data and populates form fields.
+     */
     const loadAgent = async () => {
       try {
         const token = await getToken();
@@ -40,7 +45,11 @@ export default function EditAgentPage() {
           system_prompt: agentData.system_prompt,
         });
       } catch (error) {
-        console.error("Failed to load agent:", error);
+        toast({
+          title: "Failed to load agent",
+          description: error instanceof Error ? error.message : "Something went wrong",
+          variant: "error",
+        });
       } finally {
         setLoading(false);
       }
@@ -49,6 +58,9 @@ export default function EditAgentPage() {
     if (agentId) loadAgent();
   }, [agentId, getToken]);
 
+  /**
+   * Submits updated agent data and navigates back on success.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -56,10 +68,14 @@ export default function EditAgentPage() {
       const token = await getToken();
       const api = createApiClient(token || undefined);
       await api.updateAgent(agentId, formData);
+      toast({ title: "Agent updated", variant: "success" });
       router.push(`/agents/${agentId}`);
     } catch (error) {
-      console.error("Failed to update agent:", error);
-      // Could be replaced with toast notification
+      toast({
+        title: "Failed to update agent",
+        description: error instanceof Error ? error.message : "Something went wrong",
+        variant: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -67,24 +83,41 @@ export default function EditAgentPage() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700"></div>
+      <div className="max-w-2xl mx-auto px-6 py-6">
+        <div className="mb-6 space-y-3">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-48" />
         </div>
+        <Card className="rounded-xl">
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-9 w-full" />
+            <Skeleton className="h-32 w-full" />
+            <div className="flex gap-3">
+              <Skeleton className="h-9 w-32" />
+              <Skeleton className="h-9 w-24" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!agent) {
     return (
-      <div className="max-w-2xl mx-auto px-6 py-12">
-        <Card>
+      <div className="max-w-2xl mx-auto px-6 py-6">
+        <Card className="rounded-xl">
           <CardContent className="text-center py-12">
-            <p className="text-slate-600">Agent not found</p>
+            <p className="text-slate-600 mb-4">Agent not found</p>
             <Button
+              variant="ghost"
+              size="sm"
               onClick={() => router.push("/agents")}
-              className="mt-4 bg-slate-800 text-white hover:bg-slate-900"
             >
+              <ArrowLeft className="h-4 w-4" />
               Back to Agents
             </Button>
           </CardContent>
@@ -94,85 +127,75 @@ export default function EditAgentPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-10">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="mb-6">
-          <Button
-            variant="ghost"
-            onClick={() => router.back()}
-            className="mb-4"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <h1 className="text-3xl font-bold text-slate-900">Edit Agent</h1>
-          <p className="text-slate-600 mt-2">Update your agent's configuration</p>
-        </div>
+    <div className="max-w-2xl mx-auto px-6 py-6">
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+        <h1 className="text-2xl font-semibold text-slate-900">Edit Agent</h1>
+        <p className="text-sm text-slate-600 mt-1">Update your agent&apos;s configuration</p>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Agent Details</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter agent name"
-                  required
-                />
-              </div>
+      <Card className="rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold">Agent Details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Enter agent name"
+                required
+              />
+            </div>
 
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Brief description of your agent"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Brief description of your agent"
+              />
+            </div>
 
-              <div>
-                <Label htmlFor="system_prompt">System Prompt</Label>
-                <Textarea
-                  id="system_prompt"
-                  value={formData.system_prompt}
-                  onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
-                  placeholder="Define how your agent should behave..."
-                  rows={8}
-                  required
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="system_prompt">System Prompt</Label>
+              <Textarea
+                id="system_prompt"
+                value={formData.system_prompt}
+                onChange={(e) => setFormData({ ...formData, system_prompt: e.target.value })}
+                placeholder="Define how your agent should behave..."
+                rows={6}
+                required
+              />
+            </div>
 
-              <div className="flex gap-3">
-                <Button
-                  type="submit"
-                  disabled={saving}
-                  className="bg-slate-800 text-white hover:bg-slate-900"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => router.back()}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </motion.div>
+            <div className="flex gap-3 pt-2">
+              <Button type="submit" variant="default" disabled={saving}>
+                {saving ? "Saving..." : "Save Changes"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }

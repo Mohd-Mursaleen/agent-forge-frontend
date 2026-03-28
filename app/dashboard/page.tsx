@@ -2,16 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { createApiClient, type Agent } from "@/lib/api";
-import { Bot, Plus, ArrowRight, Activity, MessageSquare } from "lucide-react";
+import { Bot, Plus, MessageSquare, ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 
+/**
+ * Dashboard overview page.
+ * Shows agent count, a quick-create CTA, and the full agent grid.
+ */
 export default function DashboardPage() {
   const { getToken } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,10 +26,15 @@ export default function DashboardPage() {
       try {
         const token = await getToken();
         const api = createApiClient(token || undefined);
-        const data = await api.getAgents(); 
+        const data = await api.getAgents();
         setAgents(data);
       } catch (error) {
         console.error("Failed to load agents:", error);
+        toast({
+          title: "Failed to load agents",
+          description: "Please try refreshing the page.",
+          variant: "error",
+        });
       } finally {
         setLoading(false);
       }
@@ -32,133 +43,152 @@ export default function DashboardPage() {
   }, [getToken]);
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="mb-10">
-          <h1 className="text-4xl font-bold text-slate-900 mb-2">Dashboard</h1>
-          <p className="text-lg text-slate-600 mb-6">
-            Manage your AI agents and track their usage.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-white border border-slate-200 rounded-xl shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <Activity className="h-7 w-7 text-slate-500" />
-                  <span className="text-xl">Total Agents</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-slate-900">{agents.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-white border border-slate-200 rounded-xl shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <Bot className="h-7 w-7 text-slate-500" />
-                  <span className="text-xl">Active Agents</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold text-slate-900">{agents.length}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-white border border-slate-200 rounded-xl shadow-sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  <Plus className="h-7 w-7 text-slate-500" />
-                  <span className="text-xl">Quick Actions</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Button
-                  onClick={() => router.push("/agents/new")}
-                  className="w-full bg-slate-800 text-white hover:bg-slate-900 transition"
-                >
-                  Create Agent
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700"></div>
-          </div>
-        ) : agents.length === 0 ? (
-          <Card className="text-center py-12 bg-white border border-slate-200 rounded-xl">
-            <CardContent>
-              <Bot className="h-16 w-16 mx-auto text-slate-300 mb-4" />
-              <h3 className="text-xl font-semibold text-slate-900 mb-2">No agents yet</h3>
-              <p className="text-slate-600 mb-6">Create your first AI agent to get started</p>
-              <Button
-                onClick={() => router.push("/agents/new")}
-                className="bg-slate-800 text-white hover:bg-slate-900 transition"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Your First Agent
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {agents.map((agent, index) => (
-              <motion.div
-                key={agent.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="hover:shadow-lg transition-all duration-200 cursor-pointer h-full flex flex-col bg-white border border-slate-200 rounded-xl">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-100">
-                          <Bot className="h-8 w-8 text-slate-500" />
-                        </div>
-                        <div>
-                          <CardTitle className="text-lg text-slate-900">{agent.name}</CardTitle>
-                          {agent.description && (
-                            <CardDescription className="mt-1 text-slate-600">
-                              {agent.description}
-                            </CardDescription>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex-1">
-                    <p className="text-sm text-slate-600 line-clamp-2 mb-4">
-                      {agent.system_prompt}
-                    </p>
-                  </CardContent>
-                  <CardContent className="pt-0 flex gap-2">
-                    <Button
-                      className="flex-1 bg-slate-800 text-white hover:bg-slate-900"
-                      onClick={() => router.push(`/chat?agent=${agent.id}`)}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      Chat
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="flex-1 border-slate-300 text-slate-900 hover:bg-slate-100"
-                      onClick={() => router.push(`/agents/${agent.id}`)}
-                    >
-                      <ArrowRight className="h-4 w-4 mr-2" />
-                      Details
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </motion.div>
+    <div className="max-w-6xl mx-auto px-6 py-6">
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-slate-900">Overview</h1>
+        <p className="text-sm text-slate-500">Manage your AI agents</p>
       </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-100">
+                <Bot className="h-5 w-5 text-slate-500" />
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Total Agents</p>
+                {loading ? (
+                  <Skeleton className="h-7 w-10 mt-0.5" />
+                ) : (
+                  <p className="text-2xl font-semibold text-slate-900">
+                    {agents.length}
+                  </p>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50">
+                  <Plus className="h-5 w-5 text-indigo-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Quick Actions</p>
+                  <p className="text-sm font-medium text-slate-900 mt-0.5">
+                    Create a new agent
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" onClick={() => router.push("/agents/new")}>
+                <Plus className="h-4 w-4" />
+                Create
+              </Button>
+            </div>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Agent grid */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <Skeleton className="h-3 w-full mb-2" />
+                <Skeleton className="h-3 w-2/3 mb-4" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 flex-1 rounded-lg" />
+                  <Skeleton className="h-8 flex-1 rounded-lg" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : agents.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-slate-100 mb-4">
+            <Bot className="h-7 w-7 text-slate-400" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-900 mb-1">
+            No agents yet
+          </h3>
+          <p className="text-sm text-slate-500 mb-6">
+            Create your first AI agent to get started.
+          </p>
+          <Button onClick={() => router.push("/agents/new")}>
+            <Plus className="h-4 w-4" />
+            Create Your First Agent
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {agents.map((agent) => (
+            <Card key={agent.id} className="h-full flex flex-col">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                    <Bot className="h-5 w-5 text-slate-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="truncate">{agent.name}</CardTitle>
+                    {agent.description && (
+                      <p className="text-sm text-slate-500 line-clamp-2 mt-0.5">
+                        {agent.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+
+              <CardContent className="flex-1 pt-0">
+                {agent.system_prompt && (
+                  <p className="text-sm text-slate-500 line-clamp-2">
+                    {agent.system_prompt}
+                  </p>
+                )}
+              </CardContent>
+
+              <CardContent className="pt-0">
+                <div className="flex gap-2">
+                  <Button
+                    className="flex-1"
+                    size="sm"
+                    onClick={() => router.push(`/chat?agent=${agent.id}`)}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    Chat
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => router.push(`/agents/${agent.id}`)}
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Details
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

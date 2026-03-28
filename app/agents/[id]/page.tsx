@@ -3,11 +3,13 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 import { createApiClient, type Agent, type VectorTable, type Task } from "@/lib/api";
-import { Database, MessageSquare, Plus, ArrowLeft, Edit, Trash2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { Database, MessageSquare, Plus, ArrowLeft, Edit, Trash2, X } from "lucide-react";
 import { ChatWindow } from "@/components/chat-window";
 import { useConfirmDialog } from "@/components/confirm-dialog";
 import ApiKeyGenerator from "@/components/api-key-generator";
@@ -17,6 +19,7 @@ export default function AgentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const agentId = params.id as string;
+  const { toast } = useToast();
 
   const [agent, setAgent] = useState<Agent | null>(null);
   const [tables, setTables] = useState<VectorTable[]>([]);
@@ -26,6 +29,9 @@ export default function AgentDetailPage() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
   useEffect(() => {
+    /**
+     * Loads agent details, associated tables, and tasks in parallel.
+     */
     const loadData = async () => {
       try {
         const token = await getToken();
@@ -39,7 +45,11 @@ export default function AgentDetailPage() {
         setTables(tablesData);
         setTasks(tasksData);
       } catch (error) {
-        console.error("Failed to load agent data:", error);
+        toast({
+          title: "Failed to load agent",
+          description: error instanceof Error ? error.message : "Something went wrong",
+          variant: "error",
+        });
       } finally {
         setLoading(false);
       }
@@ -48,6 +58,9 @@ export default function AgentDetailPage() {
     if (agentId) loadData();
   }, [agentId, getToken]);
 
+  /**
+   * Deletes the agent after user confirmation via the confirm dialog.
+   */
   const handleDelete = async () => {
     confirm({
       title: "Delete Agent",
@@ -59,20 +72,64 @@ export default function AgentDetailPage() {
           const token = await getToken();
           const api = createApiClient(token || undefined);
           await api.deleteAgent(agentId);
+          toast({ title: "Agent deleted", variant: "success" });
           router.push("/agents");
         } catch (error) {
-          console.error("Failed to delete agent:", error);
-          // Could be replaced with toast notification
+          toast({
+            title: "Failed to delete agent",
+            description: error instanceof Error ? error.message : "Something went wrong",
+            variant: "error",
+          });
         }
-      }
+      },
+    });
+  };
+
+  /**
+   * Deletes a task by ID, refreshes the tasks list, and shows a toast.
+   */
+  const handleDeleteTask = (task: Task) => {
+    confirm({
+      title: "Delete Task",
+      description: `Are you sure you want to delete the task "${task.task_name}"? This action cannot be undone.`,
+      confirmText: "Delete Task",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          const token = await getToken();
+          const api = createApiClient(token || undefined);
+          await api.deleteTask(task.id);
+          const updatedTasks = await api.getAgentTasks(agentId);
+          setTasks(updatedTasks);
+          toast({ title: "Task deleted", variant: "success" });
+        } catch (error) {
+          toast({
+            title: "Failed to delete task",
+            description: error instanceof Error ? error.message : "Something went wrong",
+            variant: "error",
+          });
+        }
+      },
     });
   };
 
   if (loading) {
     return (
-      <div className="max-w-5xl mx-auto px-8 py-16">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700"></div>
+      <div className="max-w-6xl mx-auto px-6 py-6">
+        <div className="mb-6 space-y-3">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="h-8 w-64" />
+          <Skeleton className="h-5 w-96" />
+        </div>
+        <div className="flex gap-3 mb-6">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-20" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+        <div className="space-y-6">
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
+          <Skeleton className="h-48 w-full rounded-xl" />
         </div>
       </div>
     );
@@ -80,14 +137,11 @@ export default function AgentDetailPage() {
 
   if (!agent) {
     return (
-      <div className="max-w-5xl mx-auto px-8 py-16">
-        <Card>
+      <div className="max-w-6xl mx-auto px-6 py-6">
+        <Card className="rounded-xl">
           <CardContent className="text-center py-12">
-            <p className="text-slate-600">Agent not found</p>
-            <Button
-              onClick={() => router.push("/agents")}
-              className="mt-4 bg-slate-800 text-white hover:bg-slate-900"
-            >
+            <p className="text-slate-600 mb-4">Agent not found</p>
+            <Button variant="default" onClick={() => router.push("/agents")}>
               Back to Agents
             </Button>
           </CardContent>
@@ -97,253 +151,188 @@ export default function AgentDetailPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-8 py-10">
-      <div className="flex gap-6">
-        {/* Main Content */}
-        <div className={`flex-1 transition-all duration-300 ${showChat ? "w-1/2" : "w-full"}`}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <div className="mb-6">
+    <div className="max-w-6xl mx-auto px-6 py-6">
+      {/* Header */}
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="mb-4"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Button>
+
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900">{agent.name}</h1>
+            {agent.description && (
+              <p className="text-sm text-slate-600 mt-1">{agent.description}</p>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="default" onClick={() => setShowChat(true)}>
+              <MessageSquare className="h-4 w-4" />
+              Chat
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push(`/agents/${agentId}/edit`)}
+            >
+              <Edit className="h-4 w-4" />
+              Edit
+            </Button>
+            <Button variant="ghost" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleDelete}>
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Knowledge Tables */}
+      <Card className="rounded-xl mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold">Knowledge Tables</CardTitle>
+              <Badge variant="secondary">{tables.length}</Badge>
+            </div>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => router.push(`/agents/${agentId}/tables/new`)}
+            >
+              <Plus className="h-4 w-4" />
+              New Table
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {tables.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">No tables yet</p>
+          ) : (
+            <div className="space-y-2">
+              {tables.map((table) => (
+                <div
+                  key={table.id}
+                  className="flex items-center gap-3 p-3 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+                  onClick={() => router.push(`/tables/${table.id}`)}
+                >
+                  <Database className="h-4 w-4 text-slate-400 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-900 truncate">
+                      {table.display_name || table.name}
+                    </p>
+                    {table.description && (
+                      <p className="text-sm text-slate-500 truncate">{table.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Tasks */}
+      <Card className="rounded-xl mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-sm font-semibold">Tasks</CardTitle>
+              <Badge variant="secondary">{tasks.length}</Badge>
+            </div>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={() => router.push(`/agents/${agentId}/tasks/new`)}
+            >
+              <Plus className="h-4 w-4" />
+              New Task
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {tasks.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">No tasks yet</p>
+          ) : (
+            <div className="space-y-2">
+              {tasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  <div
+                    className="flex-1 min-w-0 cursor-pointer"
+                    onClick={() => router.push(`/tasks/${task.id}`)}
+                  >
+                    <p className="text-sm font-medium text-slate-900">{task.task_name}</p>
+                    <p className="text-sm text-slate-500 truncate">{task.task_description}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0 ml-4">
+                    <Badge variant={task.is_active ? "success" : "secondary"}>
+                      {task.is_active ? "Active" : "Inactive"}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => router.push(`/tasks/${task.id}/edit`)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleDeleteTask(task)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* API & Embed */}
+      <Card className="rounded-xl">
+        <CardHeader>
+          <CardTitle className="text-sm font-semibold">API & Embed</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ApiKeyGenerator agentId={agentId} />
+        </CardContent>
+      </Card>
+
+      {/* Slide-over Chat Panel */}
+      {showChat && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/20 z-40"
+            onClick={() => setShowChat(false)}
+          />
+          <div className="fixed top-0 right-0 h-full w-96 bg-white border-l border-slate-200 shadow-xl z-50 flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-slate-200">
+              <h2 className="text-sm font-semibold text-slate-900">Chat with {agent.name}</h2>
               <Button
                 variant="ghost"
-                onClick={() => router.back()}
-                className="mb-4"
+                size="icon"
+                onClick={() => setShowChat(false)}
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
+                <X className="h-4 w-4" />
               </Button>
-              <div className="flex items-start justify-between">
-                <div>
-                  <h1 className="text-4xl font-bold text-slate-900 mb-2">{agent.name}</h1>
-                  {agent.description && (
-                    <p className="text-slate-600">{agent.description}</p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    className="border-slate-300 text-slate-900 hover:bg-slate-100"
-                    onClick={() => router.push(`/agents/${agentId}/edit`)}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    className="bg-red-600 text-white hover:bg-red-700"
-                    onClick={handleDelete}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
             </div>
-
-            {/* System Prompt */}
-            {/* <Card className="mb-6 bg-white border border-slate-200 rounded-xl">
-              <CardHeader>
-                <CardTitle>System Prompt</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-slate-700 whitespace-pre-wrap">{agent.system_prompt}</p>
-              </CardContent>
-            </Card> */}
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <Button
-                className="h-auto py-4 flex items-center gap-2 bg-slate-800 text-white hover:bg-slate-900"
-                onClick={() => setShowChat(!showChat)}
-              >
-                <MessageSquare className="h-6 w-6" />
-                <span>{showChat ? "Hide Chat" : "Chat with Agent"}</span>
-              </Button>
-              {/* <Button
-                variant="outline"
-                className="h-auto py-4 flex-col gap-2 border-slate-300 text-slate-900 hover:bg-slate-100"
-                onClick={() => router.push(`/agents/${agentId}/tables/new`)}
-              >
-                <Database className="h-6 w-6" />
-                <span>Add Table</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-auto py-4 flex-col gap-2 border-slate-300 text-slate-900 hover:bg-slate-100"
-                onClick={() => router.push(`/agents/${agentId}/tasks/new`)}
-              >
-                <Plus className="h-6 w-6" />
-                <span>Add Task</span>
-              </Button> */}
-            </div>
-
-            {/* Vector Tables */}
-            <Card className="mb-6 bg-white border border-slate-200 rounded-xl">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Vector Tables</CardTitle>
-                    <CardDescription>Data tables for this agent</CardDescription>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="bg-slate-800 text-white hover:bg-slate-900"
-                    onClick={() => router.push(`/agents/${agentId}/tables/new`)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Table
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {tables.length === 0 ? (
-                  <p className="text-slate-500 text-center py-8">No tables yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {tables.map((table) => (
-                      <div
-                        key={table.id}
-                        className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-                        onClick={() => router.push(`/tables/${table.id}`)}
-                      >
-                        <div>
-                          <p className="font-medium text-slate-900">{table.display_name || table.name}</p>
-                          {table.description && (
-                            <p className="text-sm text-slate-600">{table.description}</p>
-                          )}
-                        </div>
-                        <Database className="h-5 w-5 text-slate-400" />
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Tasks */}
-            <Card className="bg-white border border-slate-200 rounded-xl">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Tasks</CardTitle>
-                    <CardDescription>AI-generated tools for this agent</CardDescription>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="bg-slate-800 text-white hover:bg-slate-900"
-                    onClick={() => router.push(`/agents/${agentId}/tasks/new`)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    New Task
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {tasks.length === 0 ? (
-                  <p className="text-slate-500 text-center py-8">No tasks yet</p>
-                ) : (
-                  <div className="space-y-3">
-                    {tasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="p-4 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors"
-                      >
-                        <div className="flex items-start justify-between">
-                          <div 
-                            className="flex-1 cursor-pointer"
-                            onClick={() => router.push(`/tasks/${task.id}`)}
-                          >
-                            <p className="font-medium text-slate-900">{task.task_name}</p>
-                            <p className="text-sm text-slate-600 mt-1">{task.task_description}</p>
-                            {task.tools && (
-                              <div className="mt-2 text-xs text-slate-500">
-                                {task.tools.parameters?.length || 0} parameters
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`px-2 py-1 rounded text-xs font-medium ${
-                                task.is_active
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-slate-100 text-slate-500"
-                              }`}
-                            >
-                              {task.is_active ? "Active" : "Inactive"}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                router.push(`/tasks/${task.id}/edit`);
-                              }}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                confirm({
-                                  title: "Delete Task",
-                                  description: `Are you sure you want to delete the task "${task.task_name}"? This action cannot be undone.`,
-                                  confirmText: "Delete Task",
-                                  variant: "destructive",
-                                  onConfirm: async () => {
-                                    try {
-                                      const token = await getToken();
-                                      const api = createApiClient(token || undefined);
-                                      await api.deleteTask(task.id);
-                                      // Refresh tasks
-                                      const updatedTasks = await api.getAgentTasks(agentId);
-                                      setTasks(updatedTasks);
-                                    } catch (error) {
-                                      console.error("Failed to delete task:", error);
-                                      // Could be replaced with toast notification
-                                    }
-                                  }
-                                });
-                              }}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* API Keys & Embedding */}
-            <div className="mt-6">
-              <ApiKeyGenerator agentId={agentId} />
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Chat Window */}
-        {showChat && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="w-1/2 flex-shrink-0"
-          >
-            <div className="sticky top-4">
+            <div className="flex-1 overflow-hidden">
               <ChatWindow agentId={agentId} onClose={() => setShowChat(false)} />
             </div>
-          </motion.div>
-        )}
-      </div>
+          </div>
+        </>
+      )}
+
       <ConfirmDialog />
     </div>
   );
